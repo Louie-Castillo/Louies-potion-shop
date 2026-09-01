@@ -84,14 +84,15 @@ def post_deliver_barrels(barrels_delivered: List[Barrel], order_id: int):
                 blue_ml = blue_ml + :blue_ml_delivered
                 """
             ),
-            [{"gold_paid": delivery.gold_paid,
-              "red_ml_delivered": red_ml_delivered,
-              "green_ml_delivered": green_ml_delivered,
-              "blue_ml_delivered": blue_ml_delivered,
-              }],
+            [
+                {
+                    "gold_paid": delivery.gold_paid,
+                    "red_ml_delivered": red_ml_delivered,
+                    "green_ml_delivered": green_ml_delivered,
+                    "blue_ml_delivered": blue_ml_delivered,
+                }
+            ],
         )
-
-    
 
 
 def create_barrel_plan(
@@ -122,16 +123,16 @@ def create_barrel_plan(
         color_index = 2
 
     small_barrel = min(
-        (barrel for barrel in wholesale_catalog if barrel.potion_type[color_index] == 1),
+        (
+            barrel
+            for barrel in wholesale_catalog
+            if barrel.potion_type[color_index] == 1
+        ),
         key=lambda b: b.ml_per_barrel,
         default=None,
     )
 
-    if (
-        potion_count < 5 
-        and small_barrel
-        and small_barrel.price <= gold
-    ):
+    if potion_count < 5 and small_barrel and small_barrel.price <= gold:
         return [BarrelOrder(sku=small_barrel.sku, quantity=1)]
     return []
 

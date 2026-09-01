@@ -80,9 +80,10 @@ def post_deliver_bottles(potions_delivered: List[PotionMixes], order_id: int):
                 "blue_ml_used": blue_ml_used,
                 "red_potions_created": red_potions_created,
                 "green_potions_created": green_potions_created,
-                "blue_potions_created": blue_potions_created
-            }
+                "blue_potions_created": blue_potions_created,
+            },
         )
+
 
 def create_bottle_plan(
     red_ml: int,
@@ -97,22 +98,22 @@ def create_bottle_plan(
     if red_ml >= 100:
         plan.append(
             PotionMixes(
-                potion_type = [100, 0, 0, 0],
-                quantity = red_ml // 100,
+                potion_type=[100, 0, 0, 0],
+                quantity=red_ml // 100,
             )
         )
     if green_ml >= 100:
         plan.append(
             PotionMixes(
-                potion_type = [0, 100, 0, 0],
-                quantity = green_ml // 100,
+                potion_type=[0, 100, 0, 0],
+                quantity=green_ml // 100,
             )
         )
     if blue_ml >= 100:
         plan.append(
             PotionMixes(
-                potion_type = [0, 0, 100, 0],
-                quantity = blue_ml // 100,
+                potion_type=[0, 0, 100, 0],
+                quantity=blue_ml // 100,
             )
         )
     return plan
@@ -133,8 +134,8 @@ def get_bottle_plan():
                 FROM global_inventory
 
                 """
-                    )                
-                ).one()
+            )
+        ).one()
 
     # TODO: Fill in values below based on what is in your database
     return create_bottle_plan(

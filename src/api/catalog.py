@@ -29,45 +29,45 @@ def create_catalog() -> List[CatalogItem]:
                 SELECT red_potions, green_potions, blue_potions
                 From global_inventory
                 """
-            )                
+            )
         ).one()
     catalog = []
 
     if row.red_potions > 0:
         catalog.append(
             CatalogItem(
-                sku = "RED_POTION_0",
-                name = "red potion",
-                quantity = row.red_potions,
-                price = 50,
-                potion_type = [100, 0, 0, 0],
+                sku="RED_POTION_0",
+                name="red potion",
+                quantity=row.red_potions,
+                price=50,
+                potion_type=[100, 0, 0, 0],
             )
         )
     if row.green_potions > 0:
         catalog.append(
             CatalogItem(
-                sku = "GREEN_POTION_0",
-                name = "green potion",
-                quantity = row.green_potions,
-                price = 50,
-                potion_type = [0, 100, 0, 0],
+                sku="GREEN_POTION_0",
+                name="green potion",
+                quantity=row.green_potions,
+                price=50,
+                potion_type=[0, 100, 0, 0],
             )
         )
     if row.blue_potions > 0:
         catalog.append(
             CatalogItem(
-                sku = "BLUE_POTION_0",
-                name = "blue potion",
-                quantity = row.blue_potions,
-                price = 50,
-                potion_type = [0, 0, 100, 0],
+                sku="BLUE_POTION_0",
+                name="blue potion",
+                quantity=row.blue_potions,
+                price=50,
+                potion_type=[0, 0, 100, 0],
             )
         )
-        
+
     return catalog
 
 
-@router.get("/catalog/", tags = ["catalog"], response_model = List[CatalogItem])
+@router.get("/catalog/", tags=["catalog"], response_model=List[CatalogItem])
 def get_catalog() -> List[CatalogItem]:
     """
     Retrieves the catalog of items. Each unique item combination should have only a single price.

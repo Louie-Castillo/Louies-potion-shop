@@ -173,15 +173,17 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
                 blue_potions = blue_potions - :blue_potions_bought
                 """
             ),
-            [{
-                "total_gold": gold,
-                "red_potions_bought": red_potions_bought,
-                "green_potions_bought": green_potions_bought,
-                "blue_potions_bought": blue_potions_bought,
-            }],
+            [
+                {
+                    "total_gold": gold,
+                    "red_potions_bought": red_potions_bought,
+                    "green_potions_bought": green_potions_bought,
+                    "blue_potions_bought": blue_potions_bought,
+                }
+            ],
         )
     # TODO: Deduct the right potions from inventory to the shop
-        
+
     return CheckoutResponse(
-        total_potions_bought = total_potions_bought, total_gold_paid=total_gold_paid
+        total_potions_bought=total_potions_bought, total_gold_paid=total_gold_paid
     )

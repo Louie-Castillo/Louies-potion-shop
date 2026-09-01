@@ -52,13 +52,9 @@ def get_inventory():
         gold = row.gold
 
     return InventoryAudit(
-        number_of_potions=(
-            row.red_potions + row.green_potions + row.blue_potions
-        ), 
-        ml_in_barrels=(
-            row.red_ml + row.green_ml +row.blue_ml
-        ), 
-        gold=gold
+        number_of_potions=(row.red_potions + row.green_potions + row.blue_potions),
+        ml_in_barrels=(row.red_ml + row.green_ml + row.blue_ml),
+        gold=gold,
     )
 
 

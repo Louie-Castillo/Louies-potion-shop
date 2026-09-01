@@ -55,29 +55,27 @@ def test_buy_small_red_barrel_plan() -> None:
         ),
     ]
 
-    
-
     barrel_orders = create_barrel_plan(
-        gold = 500,
-        max_barrel_capacity = 10000,
-        current_red_ml = 0,
-        current_green_ml = 0,
-        current_blue_ml = 0,
-        current_dark_ml = 0,
-        current_red_potions = 0,
-        current_green_potions = 0,
-        current_blue_potions = 0,
-        wholesale_catalog = wholesale_catalog,
+        gold=500,
+        max_barrel_capacity=10000,
+        current_red_ml=0,
+        current_green_ml=0,
+        current_blue_ml=0,
+        current_dark_ml=0,
+        current_red_potions=0,
+        current_green_potions=0,
+        current_blue_potions=0,
+        wholesale_catalog=wholesale_catalog,
     )
 
     assert len(barrel_orders) == 1
     assert barrel_orders[0].quantity == 1
 
     assert barrel_orders[0].sku in [
-       "SMALL_RED_BARREL",
-       "SMALL_GREEN_BARREL",
-       "SMALL_BLUE_BARREL",
-   ] 
+        "SMALL_RED_BARREL",
+        "SMALL_GREEN_BARREL",
+        "SMALL_BLUE_BARREL",
+    ]
 
 
 def test_cant_afford_barrel_plan() -> None:
@@ -131,4 +129,4 @@ def test_cant_afford_barrel_plan() -> None:
 
     assert isinstance(barrel_orders, list)
     assert all(isinstance(order, BarrelOrder) for order in barrel_orders)
-    assert len(barrel_orders) == 0  
+    assert len(barrel_orders) == 0
