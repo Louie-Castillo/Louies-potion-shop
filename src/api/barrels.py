@@ -7,6 +7,8 @@ import sqlalchemy
 from src.api import auth
 from src import database as db
 
+import random
+
 router = APIRouter(
     prefix="/barrels",
     tags=["barrels"],
@@ -60,18 +62,36 @@ def post_deliver_barrels(barrels_delivered: List[Barrel], order_id: int):
 
     delivery = calculate_barrel_summary(barrels_delivered)
 
+    red_ml_delivered = 0
+    green_ml_delivered = 0
+    blue_ml_delivered = 0
+    for barrel in barrels_delivered:
+        if barrel.potion_type == [1, 0, 0, 0]:
+            red_ml_delivered += barrel.ml_per_barrel * barrel.quantity
+        elif barrel.potion_type == [0, 1, 0, 0]:
+            green_ml_delivered += barrel.ml_per_barrel * barrel.quantity
+        elif barrel.potion_type == [0, 0, 1, 0]:
+            blue_ml_delivered += barrel.ml_per_barrel * barrel.quantity
+
     with db.engine.begin() as connection:
         connection.execute(
             sqlalchemy.text(
                 """
                 UPDATE global_inventory SET 
-                gold = gold - :gold_paid
+                gold = gold - :gold_paid,
+                red_ml = red_ml + :red_ml_delivered,
+                green_ml = green_ml + :green_ml_delivered,
+                blue_ml = blue_ml + :blue_ml_delivered
                 """
             ),
-            [{"gold_paid": delivery.gold_paid}],
+            [{"gold_paid": delivery.gold_paid,
+              "red_ml_delivered": red_ml_delivered,
+              "green_ml_delivered": green_ml_delivered,
+              "blue_ml_delivered": blue_ml_delivered,
+              }],
         )
 
-    pass
+    
 
 
 def create_barrel_plan(
@@ -81,24 +101,38 @@ def create_barrel_plan(
     current_green_ml: int,
     current_blue_ml: int,
     current_dark_ml: int,
+    current_red_potions: int,
+    current_green_potions: int,
+    current_blue_potions: int,
     wholesale_catalog: List[Barrel],
 ) -> List[BarrelOrder]:
     print(
         f"gold: {gold}, max_barrel_capacity: {max_barrel_capacity}, current_red_ml: {current_red_ml}, current_green_ml: {current_green_ml}, current_blue_ml: {current_blue_ml}, current_dark_ml: {current_dark_ml}, wholesale_catalog: {wholesale_catalog}"
     )
+    color = random.choice(["red", "green", "blue"])
 
-    # find cheapest red barrel
-    red_barrel = min(
-        (barrel for barrel in wholesale_catalog if barrel.potion_type[0] == 1),
-        key=lambda b: b.price,
+    if color == "red":
+        potion_count = current_red_potions
+        color_index = 0
+    elif color == "green":
+        potion_count = current_green_potions
+        color_index = 1
+    else:
+        potion_count = current_blue_potions
+        color_index = 2
+
+    small_barrel = min(
+        (barrel for barrel in wholesale_catalog if barrel.potion_type[color_index] == 1),
+        key=lambda b: b.ml_per_barrel,
         default=None,
     )
 
-    # make sure we can afford it
-    if red_barrel and red_barrel.price <= gold:
-        return [BarrelOrder(sku=red_barrel.sku, quantity=1)]
-
-    # return an empty list if no affordable red barrel is found
+    if (
+        potion_count < 5 
+        and small_barrel
+        and small_barrel.price <= gold
+    ):
+        return [BarrelOrder(sku=small_barrel.sku, quantity=1)]
     return []
 
 
@@ -114,7 +148,14 @@ def get_wholesale_purchase_plan(wholesale_catalog: List[Barrel]):
         row = connection.execute(
             sqlalchemy.text(
                 """
-                SELECT gold
+                SELECT 
+                    gold,
+                    red_ml,
+                    green_ml,
+                    blue_ml,
+                    red_potions,
+                    green_potions,
+                    blue_potions
                 FROM global_inventory
                 """
             )
@@ -126,9 +167,12 @@ def get_wholesale_purchase_plan(wholesale_catalog: List[Barrel]):
     return create_barrel_plan(
         gold=gold,
         max_barrel_capacity=10000,
-        current_red_ml=0,
-        current_green_ml=0,
-        current_blue_ml=0,
+        current_red_ml=row.red_ml,
+        current_green_ml=row.green_ml,
+        current_blue_ml=row.blue_ml,
         current_dark_ml=0,
+        current_red_potions=row.red_potions,
+        current_green_potions=row.green_potions,
+        current_blue_potions=row.blue_potions,
         wholesale_catalog=wholesale_catalog,
     )

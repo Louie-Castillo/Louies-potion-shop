@@ -55,28 +55,29 @@ def test_buy_small_red_barrel_plan() -> None:
         ),
     ]
 
-    gold = 100
-    max_barrel_capacity = 10000
-    current_red_ml = 0
-    current_green_ml = 1000
-    current_blue_ml = 1000
-    current_dark_ml = 1000
+    
 
     barrel_orders = create_barrel_plan(
-        gold,
-        max_barrel_capacity,
-        current_red_ml,
-        current_green_ml,
-        current_blue_ml,
-        current_dark_ml,
-        wholesale_catalog,
+        gold = 500,
+        max_barrel_capacity = 10000,
+        current_red_ml = 0,
+        current_green_ml = 0,
+        current_blue_ml = 0,
+        current_dark_ml = 0,
+        current_red_potions = 0,
+        current_green_potions = 0,
+        current_blue_potions = 0,
+        wholesale_catalog = wholesale_catalog,
     )
 
-    assert isinstance(barrel_orders, list)
-    assert all(isinstance(order, BarrelOrder) for order in barrel_orders)
-    assert len(barrel_orders) > 0  # Ensure at least one order is generated
-    assert barrel_orders[0].sku == "SMALL_RED_BARREL"  # Placeholder expected output
-    assert barrel_orders[0].quantity == 1  # Placeholder quantity assertion
+    assert len(barrel_orders) == 1
+    assert barrel_orders[0].quantity == 1
+
+    assert barrel_orders[0].sku in [
+       "SMALL_RED_BARREL",
+       "SMALL_GREEN_BARREL",
+       "SMALL_BLUE_BARREL",
+   ] 
 
 
 def test_cant_afford_barrel_plan() -> None:
@@ -111,6 +112,10 @@ def test_cant_afford_barrel_plan() -> None:
     current_blue_ml = 1000
     current_dark_ml = 1000
 
+    current_red_potions = 0
+    current_green_potions = 0
+    current_blue_potions = 0
+
     barrel_orders = create_barrel_plan(
         gold,
         max_barrel_capacity,
@@ -118,9 +123,12 @@ def test_cant_afford_barrel_plan() -> None:
         current_green_ml,
         current_blue_ml,
         current_dark_ml,
+        current_red_potions,
+        current_green_potions,
+        current_blue_potions,
         wholesale_catalog,
     )
 
     assert isinstance(barrel_orders, list)
     assert all(isinstance(order, BarrelOrder) for order in barrel_orders)
-    assert len(barrel_orders) == 0  # Ensure at least one order is generated
+    assert len(barrel_orders) == 0  
