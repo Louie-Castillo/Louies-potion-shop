@@ -167,7 +167,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             sqlalchemy.text(
                 """
                 UPDATE global_inventory SET 
-                gold = :total_gold,
+                gold = gold + :total_gold_paid,
                 red_potions = red_potions - :red_potions_bought,
                 green_potions = green_potions - :green_potions_bought,
                 blue_potions = blue_potions - :blue_potions_bought
@@ -175,7 +175,7 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
             ),
             [
                 {
-                    "total_gold": gold,
+                    "total_gold_paid": total_gold_paid,
                     "red_potions_bought": red_potions_bought,
                     "green_potions_bought": green_potions_bought,
                     "blue_potions_bought": blue_potions_bought,
