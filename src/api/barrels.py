@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
 from typing import List
 
@@ -7,7 +7,6 @@ import sqlalchemy
 from src.api import auth
 from src import database as db
 
-import random
 
 router = APIRouter(
     prefix="/barrels",
@@ -53,127 +52,202 @@ def calculate_barrel_summary(barrels: List[Barrel]) -> BarrelSummary:
 
 
 @router.post("/deliver/{order_id}", status_code=status.HTTP_204_NO_CONTENT)
-def post_deliver_barrels(barrels_delivered: List[Barrel], order_id: int):
+def post_deliver_barrels(
+    barrels_delivered: List[Barrel],
+    order_id: int,
+) -> None:
     """
-    Processes barrels delivered based on the provided order_id. order_id is a unique value representing
-    a single delivery; the call is idempotent based on the order_id.
+    Records delivered barrels, subtracts their cost, and adds their ingredients.
     """
     print(f"barrels delivered: {barrels_delivered} order_id: {order_id}")
 
     delivery = calculate_barrel_summary(barrels_delivered)
+    ingredients_delivered = [0, 0, 0, 0]
 
-    red_ml_delivered = 0
-    green_ml_delivered = 0
-    blue_ml_delivered = 0
     for barrel in barrels_delivered:
-        if barrel.potion_type == [1, 0, 0, 0]:
-            red_ml_delivered += barrel.ml_per_barrel * barrel.quantity
-        elif barrel.potion_type == [0, 1, 0, 0]:
-            green_ml_delivered += barrel.ml_per_barrel * barrel.quantity
-        elif barrel.potion_type == [0, 0, 1, 0]:
-            blue_ml_delivered += barrel.ml_per_barrel * barrel.quantity
+        total_ml = barrel.ml_per_barrel * barrel.quantity
+
+        for index, proportion in enumerate(barrel.potion_type):
+            ingredients_delivered[index] += round(total_ml * proportion)
+
+    if ingredients_delivered[3] > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Dark ingredient storage is not currently supported",
+        )
 
     with db.engine.begin() as connection:
+        inventory = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT gold, red_ml, green_ml, blue_ml
+                FROM global_inventory
+                WHERE id = 1
+                FOR UPDATE
+                """
+            )
+        ).one()
+
+        if delivery.gold_paid > inventory.gold:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Not enough gold for this barrel delivery",
+            )
+
+        current_ml = inventory.red_ml + inventory.green_ml + inventory.blue_ml
+        delivered_ml = sum(ingredients_delivered[:3])
+
+        if current_ml + delivered_ml > 10000:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Not enough capacity for this barrel delivery",
+            )
+
         connection.execute(
             sqlalchemy.text(
                 """
-                UPDATE global_inventory SET 
-                gold = gold - :gold_paid,
-                red_ml = red_ml + :red_ml_delivered,
-                green_ml = green_ml + :green_ml_delivered,
-                blue_ml = blue_ml + :blue_ml_delivered
+                UPDATE global_inventory
+                SET
+                    gold = gold - :gold_paid,
+                    red_ml = red_ml + :red_ml_delivered,
+                    green_ml = green_ml + :green_ml_delivered,
+                    blue_ml = blue_ml + :blue_ml_delivered
+                WHERE id = 1
                 """
             ),
-            [
-                {
-                    "gold_paid": delivery.gold_paid,
-                    "red_ml_delivered": red_ml_delivered,
-                    "green_ml_delivered": green_ml_delivered,
-                    "blue_ml_delivered": blue_ml_delivered,
-                }
-            ],
+            {
+                "gold_paid": delivery.gold_paid,
+                "red_ml_delivered": ingredients_delivered[0],
+                "green_ml_delivered": ingredients_delivered[1],
+                "blue_ml_delivered": ingredients_delivered[2],
+            },
         )
 
 
 def create_barrel_plan(
     gold: int,
     max_barrel_capacity: int,
-    current_red_ml: int,
-    current_green_ml: int,
-    current_blue_ml: int,
-    current_dark_ml: int,
-    current_red_potions: int,
-    current_green_potions: int,
-    current_blue_potions: int,
+    current_ml: List[int],
+    target_potion_type: List[int],
     wholesale_catalog: List[Barrel],
 ) -> List[BarrelOrder]:
-    print(
-        f"gold: {gold}, max_barrel_capacity: {max_barrel_capacity}, current_red_ml: {current_red_ml}, current_green_ml: {current_green_ml}, current_blue_ml: {current_blue_ml}, current_dark_ml: {current_dark_ml}, wholesale_catalog: {wholesale_catalog}"
+    remaining_capacity = max(
+        0,
+        max_barrel_capacity - sum(current_ml),
     )
-    color = random.choice(["red", "green", "blue"])
 
-    if color == "red":
-        potion_count = current_red_potions
-        color_index = 0
-    elif color == "green":
-        potion_count = current_green_potions
-        color_index = 1
-    else:
-        potion_count = current_blue_potions
-        color_index = 2
+    if gold <= 0 or remaining_capacity == 0:
+        return []
 
-    small_barrel = min(
-        (
-            barrel
-            for barrel in wholesale_catalog
-            if barrel.potion_type[color_index] == 1
+    # Dark ingredients cannot be stored in global_inventory yet.
+    if target_potion_type[3] > 0:
+        return []
+
+    required_ingredients = [
+        index for index, amount in enumerate(target_potion_type) if amount > 0
+    ]
+
+    if not required_ingredients:
+        return []
+
+    # Find the ingredient for which we can currently make the fewest
+    # bottles of the selected potion.
+    bottleneck_index = min(
+        required_ingredients,
+        key=lambda index: (current_ml[index] / target_potion_type[index]),
+    )
+
+    candidates = [
+        barrel
+        for barrel in wholesale_catalog
+        if barrel.quantity > 0
+        and barrel.price <= gold
+        and barrel.ml_per_barrel <= remaining_capacity
+        and barrel.potion_type[3] == 0
+        and barrel.potion_type[bottleneck_index] > 0
+    ]
+
+    if not candidates:
+        return []
+
+    selected_barrel = min(
+        candidates,
+        key=lambda barrel: (
+            barrel.ml_per_barrel,
+            barrel.price,
+            barrel.sku,
         ),
-        key=lambda b: b.ml_per_barrel,
-        default=None,
     )
 
-    if potion_count < 5 and small_barrel and small_barrel.price <= gold:
-        return [BarrelOrder(sku=small_barrel.sku, quantity=1)]
-    return []
+    return [
+        BarrelOrder(
+            sku=selected_barrel.sku,
+            quantity=1,
+        )
+    ]
 
 
 @router.post("/plan", response_model=List[BarrelOrder])
-def get_wholesale_purchase_plan(wholesale_catalog: List[Barrel]):
+def get_wholesale_purchase_plan(
+    wholesale_catalog: List[Barrel],
+) -> List[BarrelOrder]:
     """
-    Gets the plan for purchasing wholesale barrels. The call passes in a catalog of available barrels
-    and the shop returns back which barrels they'd like to purchase and how many.
+    Selects barrels that provide ingredients for a potion recipe
+    configured in the potions table.
     """
     print(f"barrel catalog: {wholesale_catalog}")
 
     with db.engine.begin() as connection:
-        row = connection.execute(
+        inventory = connection.execute(
             sqlalchemy.text(
                 """
-                SELECT 
-                    gold,
-                    red_ml,
-                    green_ml,
-                    blue_ml,
-                    red_potions,
-                    green_potions,
-                    blue_potions
+                SELECT gold, red_ml, green_ml, blue_ml
                 FROM global_inventory
+                WHERE id = 1
                 """
             )
         ).one()
 
-        gold = row.gold
+        target_potion = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT
+                    red_ml,
+                    green_ml,
+                    blue_ml,
+                    dark_ml
+                FROM potions
+                ORDER BY
+                    quantity ASC,
+                    (
+                        CASE WHEN red_ml > 0 THEN 1 ELSE 0 END +
+                        CASE WHEN green_ml > 0 THEN 1 ELSE 0 END +
+                        CASE WHEN blue_ml > 0 THEN 1 ELSE 0 END +
+                        CASE WHEN dark_ml > 0 THEN 1 ELSE 0 END
+                    ) DESC,
+                    id
+                LIMIT 1
+                """
+            )
+        ).one_or_none()
 
-    # TODO: fill in values correctly based on what is in your database
+    if target_potion is None:
+        return []
+
     return create_barrel_plan(
-        gold=gold,
+        gold=inventory.gold,
         max_barrel_capacity=10000,
-        current_red_ml=row.red_ml,
-        current_green_ml=row.green_ml,
-        current_blue_ml=row.blue_ml,
-        current_dark_ml=0,
-        current_red_potions=row.red_potions,
-        current_green_potions=row.green_potions,
-        current_blue_potions=row.blue_potions,
+        current_ml=[
+            inventory.red_ml,
+            inventory.green_ml,
+            inventory.blue_ml,
+            0,
+        ],
+        target_potion_type=[
+            target_potion.red_ml,
+            target_potion.green_ml,
+            target_potion.blue_ml,
+            target_potion.dark_ml,
+        ],
         wholesale_catalog=wholesale_catalog,
     )

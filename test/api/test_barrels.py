@@ -30,7 +30,7 @@ def test_barrel_delivery() -> None:
     assert delivery_summary.gold_paid == 1750
 
 
-def test_buy_small_red_barrel_plan() -> None:
+def test_buy_barrel_for_mixed_potion_plan() -> None:
     wholesale_catalog: List[Barrel] = [
         Barrel(
             sku="SMALL_RED_BARREL",
@@ -58,24 +58,15 @@ def test_buy_small_red_barrel_plan() -> None:
     barrel_orders = create_barrel_plan(
         gold=500,
         max_barrel_capacity=10000,
-        current_red_ml=0,
-        current_green_ml=0,
-        current_blue_ml=0,
-        current_dark_ml=0,
-        current_red_potions=0,
-        current_green_potions=0,
-        current_blue_potions=0,
+        current_ml=[0, 0, 0, 0],
+        target_potion_type=[50, 50, 0, 0],
         wholesale_catalog=wholesale_catalog,
     )
 
     assert len(barrel_orders) == 1
     assert barrel_orders[0].quantity == 1
 
-    assert barrel_orders[0].sku in [
-        "SMALL_RED_BARREL",
-        "SMALL_GREEN_BARREL",
-        "SMALL_BLUE_BARREL",
-    ]
+    assert barrel_orders[0].sku == "SMALL_RED_BARREL"
 
 
 def test_cant_afford_barrel_plan() -> None:
@@ -103,28 +94,12 @@ def test_cant_afford_barrel_plan() -> None:
         ),
     ]
 
-    gold = 50
-    max_barrel_capacity = 10000
-    current_red_ml = 0
-    current_green_ml = 1000
-    current_blue_ml = 1000
-    current_dark_ml = 1000
-
-    current_red_potions = 0
-    current_green_potions = 0
-    current_blue_potions = 0
-
     barrel_orders = create_barrel_plan(
-        gold,
-        max_barrel_capacity,
-        current_red_ml,
-        current_green_ml,
-        current_blue_ml,
-        current_dark_ml,
-        current_red_potions,
-        current_green_potions,
-        current_blue_potions,
-        wholesale_catalog,
+        gold=50,
+        max_barrel_capacity=10000,
+        current_ml=[0, 1000, 1000, 0],
+        target_potion_type=[50, 50, 0, 0],
+        wholesale_catalog=wholesale_catalog,
     )
 
     assert isinstance(barrel_orders, list)

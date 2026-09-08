@@ -20,51 +20,43 @@ class CatalogItem(BaseModel):
     )
 
 
-# Placeholder function, you will replace this with a database call
 def create_catalog() -> List[CatalogItem]:
     with db.engine.begin() as connection:
-        row = connection.execute(
+        rows = connection.execute(
             sqlalchemy.text(
                 """
-                SELECT red_potions, green_potions, blue_potions
-                From global_inventory
+                SELECT
+                    sku,
+                    name,
+                    quantity,
+                    price,
+                    red_ml,
+                    green_ml,
+                    blue_ml,
+                    dark_ml
+                FROM potions
+                WHERE quantity > 0
+                ORDER BY id
+                LIMIT 6
                 """
             )
-        ).one()
-    catalog = []
+        ).all()
 
-    if row.red_potions > 0:
-        catalog.append(
-            CatalogItem(
-                sku="RED_POTION_0",
-                name="red potion",
-                quantity=row.red_potions,
-                price=50,
-                potion_type=[100, 0, 0, 0],
-            )
+    return [
+        CatalogItem(
+            sku=row.sku,
+            name=row.name,
+            quantity=row.quantity,
+            price=row.price,
+            potion_type=[
+                row.red_ml,
+                row.green_ml,
+                row.blue_ml,
+                row.dark_ml,
+            ],
         )
-    if row.green_potions > 0:
-        catalog.append(
-            CatalogItem(
-                sku="GREEN_POTION_0",
-                name="green potion",
-                quantity=row.green_potions,
-                price=50,
-                potion_type=[0, 100, 0, 0],
-            )
-        )
-    if row.blue_potions > 0:
-        catalog.append(
-            CatalogItem(
-                sku="BLUE_POTION_0",
-                name="blue potion",
-                quantity=row.blue_potions,
-                price=50,
-                potion_type=[0, 0, 100, 0],
-            )
-        )
-
-    return catalog
+        for row in rows
+    ]
 
 
 @router.get("/catalog/", tags=["catalog"], response_model=List[CatalogItem])
