@@ -5,16 +5,16 @@ Revises: f197591ad7ce
 Create Date: 2026-09-14 21:31:53.452841
 
 """
+
 from typing import Sequence, Union
 from sqlalchemy.dialects.postgresql import JSONB
 from alembic import op
 import sqlalchemy as sa
 
 
-
 # revision identifiers, used by Alembic.
-revision: str = '6c6fb143773b'
-down_revision: Union[str, None] = 'f197591ad7ce'
+revision: str = "6c6fb143773b"
+down_revision: Union[str, None] = "f197591ad7ce"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -219,6 +219,8 @@ def upgrade() -> None:
         "potion_ledger_entries",
         ["potion_id"],
     )
+
+
 def downgrade() -> None:
     op.drop_index(
         "ix_potion_ledger_entries_potion_id",

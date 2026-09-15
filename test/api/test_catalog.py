@@ -31,6 +31,18 @@ def test_catalog_returns_in_stock_database_potions(
         connection.execute(
             sqlalchemy.text(
                 """
+                CREATE TABLE potion_ledger_entries (
+                    id INTEGER PRIMARY KEY,
+                    potion_id INTEGER NOT NULL,
+                    change INTEGER NOT NULL
+                )
+                """
+            )
+        )
+
+        connection.execute(
+            sqlalchemy.text(
+                """
                 INSERT INTO potions (
                     id,
                     sku,
@@ -71,7 +83,7 @@ def test_catalog_returns_in_stock_database_potions(
                     "id": 2,
                     "sku": "YELLOW_POTION_0",
                     "name": "yellow potion",
-                    "quantity": 3,
+                    "quantity": 999,
                     "price": 60,
                     "red_ml": 50,
                     "green_ml": 50,
@@ -79,6 +91,21 @@ def test_catalog_returns_in_stock_database_potions(
                     "dark_ml": 0,
                 },
             ],
+        )
+
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO potion_ledger_entries (
+                    id,
+                    potion_id,
+                    change
+                )
+                VALUES
+                    (1, 2, 5),
+                    (2, 2, -2)
+                """
+            )
         )
 
     monkeypatch.setattr(catalog.db, "engine", test_engine)

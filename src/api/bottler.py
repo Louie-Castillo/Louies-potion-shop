@@ -4,6 +4,7 @@ from typing import List
 from src.api import auth
 import sqlalchemy
 from src import database as db
+from src import idempotency, ledger
 
 router = APIRouter(
     prefix="/bottler",
@@ -26,6 +27,8 @@ class PotionMixes(BaseModel):
     @field_validator("potion_type")
     @classmethod
     def validate_potion_type(cls, potion_type: List[int]) -> List[int]:
+        if any(amount < 0 or amount > 100 for amount in potion_type):
+            raise ValueError("potion_type values must be between 0 and 100")
         if sum(potion_type) != 100:
             raise ValueError("Sum of potion_type values must be exactly 100")
         return potion_type
@@ -43,6 +46,8 @@ class PotionInventory(BaseModel):
     @field_validator("potion_type")
     @classmethod
     def validate_potion_type(cls, potion_type: List[int]) -> List[int]:
+        if any(amount < 0 or amount > 100 for amount in potion_type):
+            raise ValueError("potion_type values must be between 0 and 100")
         if sum(potion_type) != 100:
             raise ValueError("Sum of potion_type values must be exactly 100")
         return potion_type
@@ -64,36 +69,52 @@ def post_deliver_bottles(
         for index, amount in enumerate(potion.potion_type):
             ingredients_used[index] += amount * potion.quantity
 
+    operation_type = "bottle_delivery"
+    request_id = str(order_id)
+    error_status: int | None = None
+    error_detail: str | None = None
+
     with db.engine.begin() as connection:
-        raw_inventory = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT red_ml, green_ml, blue_ml
-                FROM global_inventory
-                WHERE id = 1
-                FOR UPDATE
-                """
-            )
-        ).one()
+        processed_request_id = idempotency.reserve_request(
+            connection,
+            operation_type,
+            request_id,
+        )
 
-        available_ml = [
-            raw_inventory.red_ml,
-            raw_inventory.green_ml,
-            raw_inventory.blue_ml,
-            0,
-        ]
-
-        if any(
-            amount_used > amount_available
-            for amount_used, amount_available in zip(
-                ingredients_used,
-                available_ml,
+        if processed_request_id is None:
+            stored_response = idempotency.get_stored_response(
+                connection,
+                operation_type,
+                request_id,
             )
-        ):
+
+            if stored_response.status_code == status.HTTP_204_NO_CONTENT:
+                return None
+
+            detail = "Previously processed bottle delivery failed"
+
+            if isinstance(stored_response.body, dict):
+                stored_detail = stored_response.body.get("detail")
+                if isinstance(stored_detail, str):
+                    detail = stored_detail
+
             raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Not enough raw ingredients for this delivery",
+                status_code=stored_response.status_code,
+                detail=detail,
             )
+
+        lock_query = """
+            SELECT id
+            FROM global_inventory
+            WHERE id = 1
+        """
+
+        if connection.dialect.name == "postgresql":
+            lock_query += " FOR UPDATE"
+
+        connection.execute(sqlalchemy.text(lock_query)).one()
+
+        potion_quantities_to_add: dict[int, int] = {}
 
         for potion in potions_delivered:
             red_ml, green_ml, blue_ml, dark_ml = potion.potion_type
@@ -101,18 +122,16 @@ def post_deliver_bottles(
             potion_id = connection.execute(
                 sqlalchemy.text(
                     """
-                    UPDATE potions
-                    SET quantity = quantity + :quantity
+                    SELECT id
+                    FROM potions
                     WHERE
                         red_ml = :red_ml
                         AND green_ml = :green_ml
                         AND blue_ml = :blue_ml
                         AND dark_ml = :dark_ml
-                    RETURNING id
                     """
                 ),
                 {
-                    "quantity": potion.quantity,
                     "red_ml": red_ml,
                     "green_ml": green_ml,
                     "blue_ml": blue_ml,
@@ -121,27 +140,145 @@ def post_deliver_bottles(
             ).scalar_one_or_none()
 
             if potion_id is None:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Delivered potion recipe is not configured",
+                error_status = status.HTTP_400_BAD_REQUEST
+                error_detail = "Delivered potion recipe is not configured"
+                break
+
+            potion_id = int(potion_id)
+            potion_quantities_to_add[potion_id] = (
+                potion_quantities_to_add.get(potion_id, 0) + potion.quantity
+            )
+
+        if error_status is None:
+            ingredients = ledger.get_current_ingredients(connection)
+            available_ml = [
+                ingredients.red_ml,
+                ingredients.green_ml,
+                ingredients.blue_ml,
+                ingredients.dark_ml,
+            ]
+
+            if any(
+                amount_used > amount_available
+                for amount_used, amount_available in zip(
+                    ingredients_used,
+                    available_ml,
+                )
+            ):
+                error_status = status.HTTP_409_CONFLICT
+                error_detail = "Not enough raw ingredients for this delivery"
+            elif (
+                ledger.get_total_potions(connection)
+                + sum(potion_quantities_to_add.values())
+                > 50
+            ):
+                error_status = status.HTTP_409_CONFLICT
+                error_detail = "Not enough potion capacity for this delivery"
+            elif potion_quantities_to_add:
+                transaction_id = int(
+                    connection.execute(
+                        sqlalchemy.text(
+                            """
+                            INSERT INTO inventory_transactions (
+                                transaction_type,
+                                description
+                            )
+                            VALUES (
+                                'bottle_delivery',
+                                :description
+                            )
+                            RETURNING id
+                            """
+                        ),
+                        {
+                            "description": f"Bottle delivery order {order_id}",
+                        },
+                    ).scalar_one()
                 )
 
-        connection.execute(
-            sqlalchemy.text(
-                """
-                UPDATE global_inventory
-                SET
-                    red_ml = red_ml - :red_ml_used,
-                    green_ml = green_ml - :green_ml_used,
-                    blue_ml = blue_ml - :blue_ml_used
-                WHERE id = 1
-                """
-            ),
-            {
-                "red_ml_used": ingredients_used[0],
-                "green_ml_used": ingredients_used[1],
-                "blue_ml_used": ingredients_used[2],
-            },
+                ingredient_names = ["red", "green", "blue", "dark"]
+                ingredient_entries: list[dict[str, object]] = [
+                    {
+                        "transaction_id": transaction_id,
+                        "ingredient_type": ingredient_name,
+                        "change": -amount_used,
+                    }
+                    for ingredient_name, amount_used in zip(
+                        ingredient_names,
+                        ingredients_used,
+                    )
+                    if amount_used != 0
+                ]
+
+                if ingredient_entries:
+                    connection.execute(
+                        sqlalchemy.text(
+                            """
+                            INSERT INTO ingredient_ledger_entries (
+                                transaction_id,
+                                ingredient_type,
+                                change
+                            )
+                            VALUES (
+                                :transaction_id,
+                                :ingredient_type,
+                                :change
+                            )
+                            """
+                        ),
+                        ingredient_entries,
+                    )
+
+                connection.execute(
+                    sqlalchemy.text(
+                        """
+                        INSERT INTO potion_ledger_entries (
+                            transaction_id,
+                            potion_id,
+                            change
+                        )
+                        VALUES (
+                            :transaction_id,
+                            :potion_id,
+                            :change
+                        )
+                        """
+                    ),
+                    [
+                        {
+                            "transaction_id": transaction_id,
+                            "potion_id": potion_id,
+                            "change": quantity,
+                        }
+                        for potion_id, quantity in potion_quantities_to_add.items()
+                    ],
+                )
+
+                idempotency.complete_request(
+                    connection,
+                    processed_request_id,
+                    status.HTTP_204_NO_CONTENT,
+                    transaction_id=transaction_id,
+                )
+            else:
+                idempotency.complete_request(
+                    connection,
+                    processed_request_id,
+                    status.HTTP_204_NO_CONTENT,
+                )
+
+        if error_status is not None and error_detail is not None:
+            idempotency.complete_request(
+                connection,
+                processed_request_id,
+                error_status,
+                response_body={"detail": error_detail},
+            )
+
+    if error_status is not None and error_detail is not None:
+        raise HTTPException(
+            status_code=error_status,
+            detail=error_detail,
         )
 
 
@@ -202,32 +339,23 @@ def create_bottle_plan(
 
 
 @router.post("/plan", response_model=List[PotionMixes])
-def get_bottle_plan():
+def get_bottle_plan() -> List[PotionMixes]:
     """
-    Gets the plan for bottling potions.
-    Each bottle has a quantity of what proportion of red, green, blue, and dark potions to add.
-    Colors are expressed in integers from 0 to 100 that must sum up to exactly 100.
+    Gets a bottle plan using ledger-based inventory balances.
     """
     with db.engine.begin() as connection:
-        raw_inventory = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT red_ml, green_ml, blue_ml
-                FROM global_inventory
-                WHERE id = 1
-                """
-            )
-        ).one()
+        ingredients = ledger.get_current_ingredients(connection)
+        potion_quantities = ledger.get_current_potion_quantities(connection)
 
         potion_rows = connection.execute(
             sqlalchemy.text(
                 """
                 SELECT
+                    id,
                     red_ml,
                     green_ml,
                     blue_ml,
-                    dark_ml,
-                    quantity
+                    dark_ml
                 FROM potions
                 ORDER BY
                     (
@@ -249,20 +377,16 @@ def get_bottle_plan():
                 row.blue_ml,
                 row.dark_ml,
             ],
-            quantity=row.quantity,
+            quantity=potion_quantities.get(int(row.id), 0),
         )
         for row in potion_rows
     ]
 
     return create_bottle_plan(
-        red_ml=raw_inventory.red_ml,
-        green_ml=raw_inventory.green_ml,
-        blue_ml=raw_inventory.blue_ml,
-        dark_ml=0,
+        red_ml=ingredients.red_ml,
+        green_ml=ingredients.green_ml,
+        blue_ml=ingredients.blue_ml,
+        dark_ml=ingredients.dark_ml,
         maximum_potion_capacity=50,
         current_potion_inventory=potion_inventory,
     )
-
-
-if __name__ == "__main__":
-    print(get_bottle_plan())

@@ -6,7 +6,7 @@ from typing import List
 import sqlalchemy
 from src.api import auth
 from src import database as db
-
+from src import idempotency, ledger
 
 router = APIRouter(
     prefix="/barrels",
@@ -32,6 +32,8 @@ class Barrel(BaseModel):
     def validate_potion_type(cls, potion_type: List[float]) -> List[float]:
         if len(potion_type) != 4:
             raise ValueError("potion_type must have exactly 4 elements: [r, g, b, d]")
+        if any(proportion < 0 or proportion > 1 for proportion in potion_type):
+            raise ValueError("potion_type values must be between 0 and 1")
         if not abs(sum(potion_type) - 1.0) < 1e-6:
             raise ValueError("Sum of potion_type values must be exactly 1.0")
         return potion_type
@@ -70,57 +72,159 @@ def post_deliver_barrels(
         for index, proportion in enumerate(barrel.potion_type):
             ingredients_delivered[index] += round(total_ml * proportion)
 
-    if ingredients_delivered[3] > 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Dark ingredient storage is not currently supported",
-        )
+    operation_type = "barrel_delivery"
+    request_id = str(order_id)
+    error_status: int | None = None
+    error_detail: str | None = None
 
     with db.engine.begin() as connection:
-        inventory = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT gold, red_ml, green_ml, blue_ml
+        processed_request_id = idempotency.reserve_request(
+            connection,
+            operation_type,
+            request_id,
+        )
+
+        if processed_request_id is None:
+            stored_response = idempotency.get_stored_response(
+                connection,
+                operation_type,
+                request_id,
+            )
+
+            if stored_response.status_code == status.HTTP_204_NO_CONTENT:
+                return None
+
+            detail = "Previously processed barrel delivery failed"
+
+            if isinstance(stored_response.body, dict):
+                stored_detail = stored_response.body.get("detail")
+                if isinstance(stored_detail, str):
+                    detail = stored_detail
+
+            raise HTTPException(
+                status_code=stored_response.status_code,
+                detail=detail,
+            )
+
+        if ingredients_delivered[3] > 0:
+            error_status = status.HTTP_400_BAD_REQUEST
+            error_detail = "Dark ingredient storage is not currently supported"
+        else:
+            lock_query = """
+                SELECT id
                 FROM global_inventory
                 WHERE id = 1
-                FOR UPDATE
-                """
+            """
+
+            if connection.dialect.name == "postgresql":
+                lock_query += " FOR UPDATE"
+
+            connection.execute(sqlalchemy.text(lock_query)).one()
+
+            gold = ledger.get_current_gold(connection)
+            ingredients = ledger.get_current_ingredients(connection)
+            delivered_ml = sum(ingredients_delivered)
+
+            if delivery.gold_paid > gold:
+                error_status = status.HTTP_409_CONFLICT
+                error_detail = "Not enough gold for this barrel delivery"
+            elif ingredients.total_ml + delivered_ml > 10000:
+                error_status = status.HTTP_409_CONFLICT
+                error_detail = "Not enough capacity for this barrel delivery"
+            else:
+                transaction_id = int(
+                    connection.execute(
+                        sqlalchemy.text(
+                            """
+                            INSERT INTO inventory_transactions (
+                                transaction_type,
+                                description
+                            )
+                            VALUES (
+                                'barrel_delivery',
+                                :description
+                            )
+                            RETURNING id
+                            """
+                        ),
+                        {
+                            "description": f"Barrel delivery order {order_id}",
+                        },
+                    ).scalar_one()
+                )
+
+                if delivery.gold_paid > 0:
+                    connection.execute(
+                        sqlalchemy.text(
+                            """
+                            INSERT INTO gold_ledger_entries (
+                                transaction_id,
+                                change
+                            )
+                            VALUES (
+                                :transaction_id,
+                                :change
+                            )
+                            """
+                        ),
+                        {
+                            "transaction_id": transaction_id,
+                            "change": -delivery.gold_paid,
+                        },
+                    )
+
+                ingredient_names = ["red", "green", "blue", "dark"]
+                ingredient_entries: list[dict[str, object]] = [
+                    {
+                        "transaction_id": transaction_id,
+                        "ingredient_type": ingredient_name,
+                        "change": amount,
+                    }
+                    for ingredient_name, amount in zip(
+                        ingredient_names,
+                        ingredients_delivered,
+                    )
+                    if amount != 0
+                ]
+
+                if ingredient_entries:
+                    connection.execute(
+                        sqlalchemy.text(
+                            """
+                            INSERT INTO ingredient_ledger_entries (
+                                transaction_id,
+                                ingredient_type,
+                                change
+                            )
+                            VALUES (
+                                :transaction_id,
+                                :ingredient_type,
+                                :change
+                            )
+                            """
+                        ),
+                        ingredient_entries,
+                    )
+
+                idempotency.complete_request(
+                    connection,
+                    processed_request_id,
+                    status.HTTP_204_NO_CONTENT,
+                    transaction_id=transaction_id,
+                )
+
+        if error_status is not None and error_detail is not None:
+            idempotency.complete_request(
+                connection,
+                processed_request_id,
+                error_status,
+                response_body={"detail": error_detail},
             )
-        ).one()
 
-        if delivery.gold_paid > inventory.gold:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Not enough gold for this barrel delivery",
-            )
-
-        current_ml = inventory.red_ml + inventory.green_ml + inventory.blue_ml
-        delivered_ml = sum(ingredients_delivered[:3])
-
-        if current_ml + delivered_ml > 10000:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Not enough capacity for this barrel delivery",
-            )
-
-        connection.execute(
-            sqlalchemy.text(
-                """
-                UPDATE global_inventory
-                SET
-                    gold = gold - :gold_paid,
-                    red_ml = red_ml + :red_ml_delivered,
-                    green_ml = green_ml + :green_ml_delivered,
-                    blue_ml = blue_ml + :blue_ml_delivered
-                WHERE id = 1
-                """
-            ),
-            {
-                "gold_paid": delivery.gold_paid,
-                "red_ml_delivered": ingredients_delivered[0],
-                "green_ml_delivered": ingredients_delivered[1],
-                "blue_ml_delivered": ingredients_delivered[2],
-            },
+    if error_status is not None and error_detail is not None:
+        raise HTTPException(
+            status_code=error_status,
+            detail=error_detail,
         )
 
 
@@ -198,50 +302,54 @@ def get_wholesale_purchase_plan(
     print(f"barrel catalog: {wholesale_catalog}")
 
     with db.engine.begin() as connection:
-        inventory = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT gold, red_ml, green_ml, blue_ml
-                FROM global_inventory
-                WHERE id = 1
-                """
-            )
-        ).one()
+        gold = ledger.get_current_gold(connection)
+        ingredients = ledger.get_current_ingredients(connection)
+        potion_quantities = ledger.get_current_potion_quantities(connection)
 
-        target_potion = connection.execute(
+        potion_rows = connection.execute(
             sqlalchemy.text(
                 """
                 SELECT
+                    id,
                     red_ml,
                     green_ml,
                     blue_ml,
                     dark_ml
                 FROM potions
-                ORDER BY
-                    quantity ASC,
-                    (
-                        CASE WHEN red_ml > 0 THEN 1 ELSE 0 END +
-                        CASE WHEN green_ml > 0 THEN 1 ELSE 0 END +
-                        CASE WHEN blue_ml > 0 THEN 1 ELSE 0 END +
-                        CASE WHEN dark_ml > 0 THEN 1 ELSE 0 END
-                    ) DESC,
-                    id
-                LIMIT 1
+                ORDER BY id
                 """
             )
-        ).one_or_none()
+        ).all()
+
+    target_potion = min(
+        potion_rows,
+        key=lambda row: (
+            potion_quantities.get(int(row.id), 0),
+            -sum(
+                amount > 0
+                for amount in (
+                    row.red_ml,
+                    row.green_ml,
+                    row.blue_ml,
+                    row.dark_ml,
+                )
+            ),
+            int(row.id),
+        ),
+        default=None,
+    )
 
     if target_potion is None:
         return []
 
     return create_barrel_plan(
-        gold=inventory.gold,
+        gold=gold,
         max_barrel_capacity=10000,
         current_ml=[
-            inventory.red_ml,
-            inventory.green_ml,
-            inventory.blue_ml,
-            0,
+            ingredients.red_ml,
+            ingredients.green_ml,
+            ingredients.blue_ml,
+            ingredients.dark_ml,
         ],
         target_potion_type=[
             target_potion.red_ml,

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field
-import sqlalchemy
+from src import ledger
 from src.api import auth
 from src import database as db
 
@@ -27,38 +27,17 @@ class CapacityPlan(BaseModel):
 @router.get("/audit", response_model=InventoryAudit)
 def get_inventory():
     """
-    Returns an audit of the current inventory. Any discrepancies between
-    what is reported here and my source of truth will be posted
-    as errors on potion exchange.
+    Returns an audit of the current ledger-based inventory.
     """
     with db.engine.begin() as connection:
-        row = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT
-                    global_inventory.gold,
-                    (
-                        global_inventory.red_ml +
-                        global_inventory.green_ml +
-                        global_inventory.blue_ml
-                    ) AS ml_in_barrels,
-                    COALESCE(
-                        (
-                            SELECT SUM(quantity)
-                            FROM potions
-                        ),
-                        0
-                    ) AS number_of_potions
-                FROM global_inventory
-                WHERE id = 1
-                """
-            )
-        ).one()
+        gold = ledger.get_current_gold(connection)
+        ingredients = ledger.get_current_ingredients(connection)
+        number_of_potions = ledger.get_total_potions(connection)
 
     return InventoryAudit(
-        number_of_potions=row.number_of_potions,
-        ml_in_barrels=row.ml_in_barrels,
-        gold=row.gold,
+        number_of_potions=number_of_potions,
+        ml_in_barrels=ingredients.total_ml,
+        gold=gold,
     )
 
 

@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from typing import List, Annotated
 import sqlalchemy
 from src import database as db
+from src import ledger
 
 router = APIRouter()
 
@@ -22,41 +23,53 @@ class CatalogItem(BaseModel):
 
 def create_catalog() -> List[CatalogItem]:
     with db.engine.begin() as connection:
+        potion_quantities = ledger.get_current_potion_quantities(connection)
+
         rows = connection.execute(
             sqlalchemy.text(
                 """
                 SELECT
+                    id,
                     sku,
                     name,
-                    quantity,
                     price,
                     red_ml,
                     green_ml,
                     blue_ml,
                     dark_ml
                 FROM potions
-                WHERE quantity > 0
                 ORDER BY id
-                LIMIT 6
                 """
             )
         ).all()
 
-    return [
-        CatalogItem(
-            sku=row.sku,
-            name=row.name,
-            quantity=row.quantity,
-            price=row.price,
-            potion_type=[
-                row.red_ml,
-                row.green_ml,
-                row.blue_ml,
-                row.dark_ml,
-            ],
+    catalog_items: List[CatalogItem] = []
+
+    for row in rows:
+        quantity = potion_quantities.get(int(row.id), 0)
+
+        if quantity <= 0:
+            continue
+
+        catalog_items.append(
+            CatalogItem(
+                sku=row.sku,
+                name=row.name,
+                quantity=quantity,
+                price=row.price,
+                potion_type=[
+                    row.red_ml,
+                    row.green_ml,
+                    row.blue_ml,
+                    row.dark_ml,
+                ],
+            )
         )
-        for row in rows
-    ]
+
+        if len(catalog_items) == 6:
+            break
+
+    return catalog_items
 
 
 @router.get("/catalog/", tags=["catalog"], response_model=List[CatalogItem])
