@@ -90,32 +90,26 @@ class CartCreateResponse(BaseModel):
 @router.post("/", response_model=CartCreateResponse)
 def create_cart(new_cart: Customer) -> CartCreateResponse:
     """
-    Creates a new cart for a specific customer.
+    Returns the customer's current open cart or creates a new one.
     """
-    operation_type = "cart_create"
-    request_id = new_cart.customer_id
-
     with db.engine.begin() as connection:
-        processed_request_id = idempotency.reserve_request(
-            connection,
-            operation_type,
-            request_id,
-        )
+        open_cart_id = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT id
+                FROM carts
+                WHERE
+                    customer_id = :customer_id
+                    AND checked_out = FALSE
+                ORDER BY id DESC
+                LIMIT 1
+                """
+            ),
+            {"customer_id": new_cart.customer_id},
+        ).scalar_one_or_none()
 
-        if processed_request_id is None:
-            stored_response = idempotency.get_stored_response(
-                connection,
-                operation_type,
-                request_id,
-            )
-
-            if stored_response.status_code == status.HTTP_200_OK:
-                return CartCreateResponse.model_validate(stored_response.body)
-
-            raise HTTPException(
-                status_code=stored_response.status_code,
-                detail="Previously processed cart creation failed",
-            )
+        if open_cart_id is not None:
+            return CartCreateResponse(cart_id=int(open_cart_id))
 
         cart_id = int(
             connection.execute(
@@ -150,15 +144,7 @@ def create_cart(new_cart: Customer) -> CartCreateResponse:
             ).scalar_one()
         )
 
-        response = CartCreateResponse(cart_id=cart_id)
-        idempotency.complete_request(
-            connection,
-            processed_request_id,
-            status.HTTP_200_OK,
-            response_body=response.model_dump(),
-        )
-
-    return response
+    return CartCreateResponse(cart_id=cart_id)
 
 
 class CartItem(BaseModel):

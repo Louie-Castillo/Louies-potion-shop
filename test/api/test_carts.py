@@ -156,7 +156,7 @@ def _install_mock_engine(
     return connection
 
 
-def test_create_cart_uses_database(
+def test_create_cart_reuses_open_cart_but_not_checked_out_cart(
     monkeypatch: pytest.MonkeyPatch,
     v3_engine: Engine,
 ) -> None:
@@ -175,6 +175,22 @@ def test_create_cart_uses_database(
     assert retry_response == response
 
     with v3_engine.begin() as connection:
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE carts
+                SET checked_out = TRUE
+                WHERE id = :cart_id
+                """
+            ),
+            {"cart_id": response.cart_id},
+        )
+
+    next_visit_response = carts.create_cart(customer)
+
+    assert next_visit_response.cart_id != response.cart_id
+
+    with v3_engine.begin() as connection:
         carts_created = connection.execute(
             sqlalchemy.text(
                 """
@@ -184,21 +200,20 @@ def test_create_cart_uses_database(
                 """
             )
         ).scalar_one()
-        processed_request = connection.execute(
+        open_cart_id = connection.execute(
             sqlalchemy.text(
                 """
-                SELECT response_status, response_body
-                FROM processed_requests
+                SELECT id
+                FROM carts
                 WHERE
-                    operation_type = 'cart_create'
-                    AND request_id = 'customer-1'
+                    customer_id = 'customer-1'
+                    AND checked_out = FALSE
                 """
-            ).columns(response_body=sqlalchemy.JSON())
-        ).one()
+            )
+        ).scalar_one()
 
-    assert carts_created == 1
-    assert processed_request.response_status == status.HTTP_200_OK
-    assert processed_request.response_body == {"cart_id": response.cart_id}
+    assert carts_created == 2
+    assert open_cart_id == next_visit_response.cart_id
 
 
 def test_add_mixed_potion_to_cart(
