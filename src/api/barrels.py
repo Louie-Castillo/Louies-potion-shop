@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
-from typing import List
 
 import sqlalchemy
 from src.api import auth
@@ -320,6 +321,68 @@ def get_wholesale_purchase_plan(
                 """
             )
         ).all()
+
+        game_time = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT day, hour
+                FROM game_time
+                WHERE id = 1
+                """
+            )
+        ).one()
+
+        if (
+            wholesale_catalog
+            and game_time.day is not None
+            and game_time.hour is not None
+        ):
+            connection.execute(
+                sqlalchemy.text(
+                    """
+                    INSERT INTO barrel_offers (
+                        game_day,
+                        game_hour,
+                        sku,
+                        ml_per_barrel,
+                        red_fraction,
+                        green_fraction,
+                        blue_fraction,
+                        dark_fraction,
+                        price,
+                        quantity
+                    )
+                    VALUES (
+                        :game_day,
+                        :game_hour,
+                        :sku,
+                        :ml_per_barrel,
+                        :red_fraction,
+                        :green_fraction,
+                        :blue_fraction,
+                        :dark_fraction,
+                        :price,
+                        :quantity
+                    )
+                    ON CONFLICT DO NOTHING
+                    """
+                ),
+                [
+                    {
+                        "game_day": game_time.day,
+                        "game_hour": game_time.hour,
+                        "sku": barrel.sku,
+                        "ml_per_barrel": barrel.ml_per_barrel,
+                        "red_fraction": barrel.potion_type[0],
+                        "green_fraction": barrel.potion_type[1],
+                        "blue_fraction": barrel.potion_type[2],
+                        "dark_fraction": barrel.potion_type[3],
+                        "price": barrel.price,
+                        "quantity": barrel.quantity,
+                    }
+                    for barrel in wholesale_catalog
+                ],
+            )
 
     target_potion = min(
         potion_rows,

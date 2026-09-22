@@ -107,6 +107,34 @@ def v3_engine() -> Iterator[Engine]:
             UNIQUE (transaction_id, potion_id)
         )
         """,
+        """
+        CREATE TABLE barrel_offers (
+            id INTEGER PRIMARY KEY,
+            game_day TEXT NOT NULL,
+            game_hour INTEGER NOT NULL,
+            sku TEXT NOT NULL,
+            ml_per_barrel INTEGER NOT NULL,
+            red_fraction REAL NOT NULL,
+            green_fraction REAL NOT NULL,
+            blue_fraction REAL NOT NULL,
+            dark_fraction REAL NOT NULL,
+            price INTEGER NOT NULL,
+            quantity INTEGER NOT NULL,
+            offered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (
+                game_day,
+                game_hour,
+                sku,
+                ml_per_barrel,
+                red_fraction,
+                green_fraction,
+                blue_fraction,
+                dark_fraction,
+                price,
+                quantity
+            )
+        )
+        """,
     ]
 
     with engine.begin() as connection:

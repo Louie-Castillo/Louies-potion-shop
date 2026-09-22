@@ -428,6 +428,108 @@ def test_cant_afford_barrel_plan() -> None:
     assert len(barrel_orders) == 0
 
 
+def test_barrel_plan_records_each_offer_once_per_game_time(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+) -> None:
+    with v3_engine.begin() as connection:
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE game_time
+                SET day = 'Edgeday', hour = 8
+                WHERE id = 1
+                """
+            )
+        )
+
+    monkeypatch.setattr(barrels_api.db, "engine", v3_engine)
+
+    wholesale_catalog = [
+        red_barrel(price=100),
+        Barrel(
+            sku="SMALL_YELLOW_BARREL",
+            ml_per_barrel=500,
+            potion_type=[0.5, 0.5, 0, 0],
+            price=75,
+            quantity=3,
+        ),
+    ]
+
+    assert barrels_api.get_wholesale_purchase_plan(wholesale_catalog) == []
+    assert barrels_api.get_wholesale_purchase_plan(wholesale_catalog) == []
+
+    with v3_engine.begin() as connection:
+        first_tick_offers = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT
+                    game_day,
+                    game_hour,
+                    sku,
+                    ml_per_barrel,
+                    red_fraction,
+                    green_fraction,
+                    blue_fraction,
+                    dark_fraction,
+                    price,
+                    quantity
+                FROM barrel_offers
+                ORDER BY sku
+                """
+            )
+        ).all()
+
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE game_time
+                SET hour = 10
+                WHERE id = 1
+                """
+            )
+        )
+
+    assert len(first_tick_offers) == 2
+
+    red_offer = next(row for row in first_tick_offers if row.sku == "SMALL_RED_BARREL")
+    yellow_offer = next(
+        row for row in first_tick_offers if row.sku == "SMALL_YELLOW_BARREL"
+    )
+
+    assert red_offer.game_day == "Edgeday"
+    assert red_offer.game_hour == 8
+    assert red_offer.ml_per_barrel == 1000
+    assert red_offer.red_fraction == 1.0
+    assert red_offer.green_fraction == 0.0
+    assert red_offer.price == 100
+    assert red_offer.quantity == 1
+
+    assert yellow_offer.game_day == "Edgeday"
+    assert yellow_offer.game_hour == 8
+    assert yellow_offer.ml_per_barrel == 500
+    assert yellow_offer.red_fraction == 0.5
+    assert yellow_offer.green_fraction == 0.5
+    assert yellow_offer.blue_fraction == 0.0
+    assert yellow_offer.dark_fraction == 0.0
+    assert yellow_offer.price == 75
+    assert yellow_offer.quantity == 3
+
+    assert barrels_api.get_wholesale_purchase_plan(wholesale_catalog) == []
+
+    with v3_engine.begin() as connection:
+        offer_count = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT COUNT(*)
+                FROM barrel_offers
+                """
+            )
+        ).scalar_one()
+
+    assert offer_count == 4
+
+
 def test_barrel_plan_reads_ledger_balances(
     monkeypatch: pytest.MonkeyPatch,
     v3_engine: Engine,
