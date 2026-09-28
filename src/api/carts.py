@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 import sqlalchemy
 from src.api import auth
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, List, Optional, Sequence
 from src import database as db
@@ -40,6 +41,25 @@ class SearchResponse(BaseModel):
     results: List[LineItem]
 
 
+def format_search_timestamp(value: Any) -> str:
+    if isinstance(value, datetime):
+        parsed_timestamp = value
+    else:
+        timestamp_text = str(value).replace(" ", "T", 1)
+
+        try:
+            parsed_timestamp = datetime.fromisoformat(
+                timestamp_text.replace("Z", "+00:00")
+            )
+        except ValueError:
+            return timestamp_text
+
+    if parsed_timestamp.tzinfo is None:
+        parsed_timestamp = parsed_timestamp.replace(tzinfo=timezone.utc)
+
+    return parsed_timestamp.isoformat().replace("+00:00", "Z")
+
+
 @router.get("/search/", response_model=SearchResponse, tags=["search"])
 def search_orders(
     customer_name: str = "",
@@ -47,21 +67,47 @@ def search_orders(
     search_page: str = "",
     sort_col: SearchSortOptions = SearchSortOptions.timestamp,
     sort_order: SearchSortOrder = SearchSortOrder.desc,
-):
+) -> SearchResponse:
     """
     Search for cart line items by customer name and/or potion sku.
     """
+    with db.engine.begin() as connection:
+        rows = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT
+                    cart_items.id AS line_item_id,
+                    potions.sku AS item_sku,
+                    carts.customer_name,
+                    cart_items.quantity * potions.price AS line_item_total,
+                    carts.checked_out_at AS timestamp
+                FROM carts
+                JOIN cart_items
+                    ON cart_items.cart_id = carts.id
+                JOIN potions
+                    ON potions.id = cart_items.potion_id
+                WHERE
+                    carts.checked_out = TRUE
+                    AND carts.checked_out_at IS NOT NULL
+                ORDER BY
+                    carts.checked_out_at DESC,
+                    cart_items.id DESC
+                """
+            )
+        ).all()
+
     return SearchResponse(
         previous=None,
         next=None,
         results=[
             LineItem(
-                line_item_id=1,
-                item_sku="1 oblivion potion",
-                customer_name="Scaramouche",
-                line_item_total=50,
-                timestamp="2021-01-01T00:00:00Z",
+                line_item_id=int(row.line_item_id),
+                item_sku=str(row.item_sku),
+                customer_name=str(row.customer_name),
+                line_item_total=int(row.line_item_total),
+                timestamp=format_search_timestamp(row.timestamp),
             )
+            for row in rows
         ],
     )
 

@@ -9,6 +9,94 @@ from sqlalchemy.engine import Engine
 from src.api import carts
 
 
+def seed_search_orders(engine: Engine) -> None:
+    with engine.begin() as connection:
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO potions (
+                    id,
+                    sku,
+                    name,
+                    quantity,
+                    price,
+                    red_ml,
+                    green_ml,
+                    blue_ml,
+                    dark_ml
+                )
+                VALUES
+                    (1, 'RED_POTION_0', 'red potion', 0, 50, 100, 0, 0, 0),
+                    (2, 'YELLOW_POTION_0', 'yellow potion', 0, 60, 50, 50, 0, 0)
+                """
+            )
+        )
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO carts (
+                    id,
+                    customer_id,
+                    customer_name,
+                    character_class,
+                    character_species,
+                    level,
+                    checked_out,
+                    checked_out_at
+                )
+                VALUES
+                    (
+                        10,
+                        'customer-10',
+                        'Ada',
+                        'Warrior',
+                        'Folk',
+                        8,
+                        TRUE,
+                        '2026-09-01 08:00:00'
+                    ),
+                    (
+                        11,
+                        'customer-11',
+                        'Bram',
+                        'Hunter',
+                        'Dvergar',
+                        12,
+                        TRUE,
+                        '2026-09-01 10:00:00'
+                    ),
+                    (
+                        12,
+                        'customer-12',
+                        'Cara',
+                        'Seer',
+                        'Alfar',
+                        5,
+                        FALSE,
+                        NULL
+                    )
+                """
+            )
+        )
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO cart_items (
+                    id,
+                    cart_id,
+                    potion_id,
+                    quantity
+                )
+                VALUES
+                    (100, 10, 1, 2),
+                    (101, 10, 2, 1),
+                    (102, 11, 2, 3),
+                    (103, 12, 1, 9)
+                """
+            )
+        )
+
+
 def seed_checkout(
     engine: Engine,
     available_quantity: int,
@@ -154,6 +242,51 @@ def _install_mock_engine(
     monkeypatch.setattr(carts.db, "engine", engine)
 
     return connection
+
+
+def test_search_orders_returns_real_completed_line_items(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+) -> None:
+    seed_search_orders(v3_engine)
+    monkeypatch.setattr(carts.db, "engine", v3_engine)
+
+    response = carts.search_orders()
+
+    assert response.previous is None
+    assert response.next is None
+    assert [item.line_item_id for item in response.results] == [102, 101, 100]
+    assert response.results[0] == carts.LineItem(
+        line_item_id=102,
+        item_sku="YELLOW_POTION_0",
+        customer_name="Bram",
+        line_item_total=180,
+        timestamp="2026-09-01T10:00:00Z",
+    )
+    assert response.results[1] == carts.LineItem(
+        line_item_id=101,
+        item_sku="YELLOW_POTION_0",
+        customer_name="Ada",
+        line_item_total=60,
+        timestamp="2026-09-01T08:00:00Z",
+    )
+    assert response.results[2].line_item_total == 100
+    assert 103 not in {item.line_item_id for item in response.results}
+
+
+def test_search_orders_returns_empty_results_when_no_orders_exist(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+) -> None:
+    monkeypatch.setattr(carts.db, "engine", v3_engine)
+
+    response = carts.search_orders()
+
+    assert response == carts.SearchResponse(
+        previous=None,
+        next=None,
+        results=[],
+    )
 
 
 def test_create_cart_reuses_open_cart_but_not_checked_out_cart(
