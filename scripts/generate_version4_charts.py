@@ -73,7 +73,9 @@ def svg_text(
 
 
 def color_for_potion(name: str, index: int) -> str:
-    return POTION_COLORS.get(name.lower(), FALLBACK_COLORS[index % len(FALLBACK_COLORS)])
+    return POTION_COLORS.get(
+        name.lower(), FALLBACK_COLORS[index % len(FALLBACK_COLORS)]
+    )
 
 
 def blend_with_white(color: str, strength: float) -> str:
@@ -150,9 +152,7 @@ def generate_sales_by_hour(
             f'height="{panel_height}" rx="10" fill="#f8fafc" '
             'stroke="#cbd5e1"/>'
         )
-        body.append(
-            f'<circle cx="{left + 24}" cy="{top + 27}" r="7" fill="{color}"/>'
-        )
+        body.append(f'<circle cx="{left + 24}" cy="{top + 27}" r="7" fill="{color}"/>')
         body.append(svg_text(left + 40, top + 32, potion_name.title(), "heading"))
         body.append(svg_text(left + 40, top + 53, potion_sku, "tick"))
         body.append(
@@ -203,9 +203,7 @@ def generate_sales_by_hour(
                 continue
             x = chart_left + (hour / 23) * chart_width
             y = chart_bottom - (value / y_max) * chart_height
-            body.append(
-                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="{color}"/>'
-            )
+            body.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="{color}"/>')
             body.append(svg_text(x, y - 9, value, "tick", "middle"))
 
         body.append(
@@ -262,9 +260,7 @@ def generate_heatmap(
         center = grid_left + (index + 0.5) * cell_width
         color = color_for_potion(str(potion["name"]), index)
         body.append(f'<circle cx="{center - 48:.1f}" cy="132" r="6" fill="{color}"/>')
-        body.append(
-            svg_text(center - 36, 137, str(potion["name"]).title(), "heading")
-        )
+        body.append(svg_text(center - 36, 137, str(potion["name"]).title(), "heading"))
 
     for row_index, row in enumerate(rows):
         y = top + row_index * row_height
