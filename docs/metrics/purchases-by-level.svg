@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="890" viewBox="0 0 1220 890">
+<style>
+text { font-family: Arial, Helvetica, sans-serif; fill: #0f172a; }
+.title { font-size: 30px; font-weight: 700; }
+.subtitle { font-size: 16px; fill: #475569; }
+.heading { font-size: 17px; font-weight: 700; }
+.label { font-size: 14px; fill: #334155; }
+.tick { font-size: 12px; fill: #64748b; }
+.value { font-size: 14px; font-weight: 700; }
+</style>
+<title>Potion Purchases by Customer Level</title>
+<desc>Completed checkout units for every observed level range</desc>
+<rect width="1220" height="890" fill="#ffffff"/>
+<text x="45.0" y="50.0" class="title" text-anchor="start">Potion Purchases by Customer Level</text>
+<text x="45.0" y="79.0" class="subtitle" text-anchor="start">Completed checkout units for every observed level range</text>
+<text x="210.0" y="137.0" class="heading" text-anchor="end">Level</text>
+<circle cx="313.2" cy="132" r="6" fill="#dc2626"/>
+<text x="325.2" y="137.0" class="heading" text-anchor="start">Red Potion</text>
+<circle cx="545.8" cy="132" r="6" fill="#16a34a"/>
+<text x="557.8" y="137.0" class="heading" text-anchor="start">Green Potion</text>
+<circle cx="778.2" cy="132" r="6" fill="#2563eb"/>
+<text x="790.2" y="137.0" class="heading" text-anchor="start">Blue Potion</text>
+<circle cx="1010.8" cy="132" r="6" fill="#ca8a04"/>
+<text x="1022.8" y="137.0" class="heading" text-anchor="start">Yellow Potion</text>
+<text x="210.0" y="187.0" class="label" text-anchor="end">3</text>
+<rect x="248.0" y="163.0" width="226.5" height="38.0" rx="5" fill="#f1aaaa" stroke="#e2e8f0"/>
+<text x="361.2" y="187.0" class="value" text-anchor="middle" fill="#0f172a">1</text>
+<rect x="480.5" y="163.0" width="226.5" height="38.0" rx="5" fill="#90d3a8" stroke="#e2e8f0"/>
+<text x="593.8" y="187.0" class="value" text-anchor="middle" fill="#0f172a">2</text>
+<rect x="713.0" y="163.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="826.2" y="187.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="945.5" y="163.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="1058.8" y="187.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<text x="210.0" y="231.0" class="label" text-anchor="end">4</text>
+<rect x="248.0" y="207.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="361.2" y="231.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="480.5" y="207.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="593.8" y="231.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="713.0" y="207.0" width="226.5" height="38.0" rx="5" fill="#aac2f7" stroke="#e2e8f0"/>
+<text x="826.2" y="231.0" class="value" text-anchor="middle" fill="#0f172a">1</text>
+<rect x="945.5" y="207.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="1058.8" y="231.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<text x="210.0" y="275.0" class="label" text-anchor="end">5</text>
+<rect x="248.0" y="251.0" width="226.5" height="38.0" rx="5" fill="#e45656" stroke="#e2e8f0"/>
+<text x="361.2" y="275.0" class="value" text-anchor="middle" fill="#ffffff">8</text>
+<rect x="480.5" y="251.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="593.8" y="275.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="713.0" y="251.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="826.2" y="275.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="945.5" y="251.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="1058.8" y="275.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<text x="210.0" y="319.0" class="label" text-anchor="end">6</text>
+<rect x="248.0" y="295.0" width="226.5" height="38.0" rx="5" fill="#ee9797" stroke="#e2e8f0"/>
+<text x="361.2" y="319.0" class="value" text-anchor="middle" fill="#0f172a">2</text>
+<rect x="480.5" y="295.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="593.8" y="319.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="713.0" y="295.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="826.2" y="319.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="945.5" y="295.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="1058.8" y="319.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<text x="210.0" y="363.0" class="label" text-anchor="end">7</text>
+<rect x="248.0" y="339.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="361.2" y="363.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="480.5" y="339.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="593.8" y="363.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="713.0" y="339.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="826.2" y="363.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="945.5" y="339.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="1058.8" y="363.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<text x="210.0" y="407.0" class="label" text-anchor="end">8</text>
+<rect x="248.0" y="383.0" width="226.5" height="38.0" rx="5" fill="#ea7c7c" stroke="#e2e8f0"/>
+<text x="361.2" y="407.0" class="value" text-anchor="middle" fill="#0f172a">4</text>
+<rect x="480.5" y="383.0" width="226.5" height="38.0" rx="5" fill="#90d3a8" stroke="#e2e8f0"/>
+<text x="593.8" y="407.0" class="value" text-anchor="middle" fill="#0f172a">2</text>
+<rect x="713.0" y="383.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="826.2" y="407.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="945.5" y="383.0" width="226.5" height="38.0" rx="5" fill="#ead19d" stroke="#e2e8f0"/>
+<text x="1058.8" y="407.0" class="value" text-anchor="middle" fill="#0f172a">1</text>
+<text x="210.0" y="451.0" class="label" text-anchor="end">9</text>
+<rect x="248.0" y="427.0" width="226.5" height="38.0" rx="5" fill="#e76868" stroke="#e2e8f0"/>
+<text x="361.2" y="451.0" class="value" text-anchor="middle" fill="#ffffff">6</text>
+<rect x="480.5" y="427.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="593.8" y="451.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="713.0" y="427.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="826.2" y="451.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="945.5" y="427.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="1058.8" y="451.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<text x="210.0" y="495.0" class="label" text-anchor="end">10</text>
+<rect x="248.0" y="471.0" width="226.5" height="38.0" rx="5" fill="#e04040" stroke="#e2e8f0"/>
+<text x="361.2" y="495.0" class="value" text-anchor="middle" fill="#ffffff">11</text>
+<rect x="480.5" y="471.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="593.8" y="495.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="713.0" y="471.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="826.2" y="495.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="945.5" y="471.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="1058.8" y="495.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<text x="210.0" y="539.0" class="label" text-anchor="end">11</text>
+<rect x="248.0" y="515.0" width="226.5" height="38.0" rx="5" fill="#e55f5f" stroke="#e2e8f0"/>
+<text x="361.2" y="539.0" class="value" text-anchor="middle" fill="#ffffff">7</text>
+<rect x="480.5" y="515.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="593.8" y="539.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="713.0" y="515.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="826.2" y="539.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="945.5" y="515.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="1058.8" y="539.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<text x="210.0" y="583.0" class="label" text-anchor="end">12</text>
+<rect x="248.0" y="559.0" width="226.5" height="38.0" rx="5" fill="#ea7c7c" stroke="#e2e8f0"/>
+<text x="361.2" y="583.0" class="value" text-anchor="middle" fill="#0f172a">4</text>
+<rect x="480.5" y="559.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="593.8" y="583.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="713.0" y="559.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="826.2" y="583.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="945.5" y="559.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="1058.8" y="583.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<text x="210.0" y="627.0" class="label" text-anchor="end">13</text>
+<rect x="248.0" y="603.0" width="226.5" height="38.0" rx="5" fill="#ec8989" stroke="#e2e8f0"/>
+<text x="361.2" y="627.0" class="value" text-anchor="middle" fill="#0f172a">3</text>
+<rect x="480.5" y="603.0" width="226.5" height="38.0" rx="5" fill="#73c892" stroke="#e2e8f0"/>
+<text x="593.8" y="627.0" class="value" text-anchor="middle" fill="#0f172a">4</text>
+<rect x="713.0" y="603.0" width="226.5" height="38.0" rx="5" fill="#aac2f7" stroke="#e2e8f0"/>
+<text x="826.2" y="627.0" class="value" text-anchor="middle" fill="#0f172a">1</text>
+<rect x="945.5" y="603.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="1058.8" y="627.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<text x="210.0" y="671.0" class="label" text-anchor="end">14</text>
+<rect x="248.0" y="647.0" width="226.5" height="38.0" rx="5" fill="#f1aaaa" stroke="#e2e8f0"/>
+<text x="361.2" y="671.0" class="value" text-anchor="middle" fill="#0f172a">1</text>
+<rect x="480.5" y="647.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="593.8" y="671.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="713.0" y="647.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="826.2" y="671.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="945.5" y="647.0" width="226.5" height="38.0" rx="5" fill="#ead19d" stroke="#e2e8f0"/>
+<text x="1058.8" y="671.0" class="value" text-anchor="middle" fill="#0f172a">1</text>
+<text x="210.0" y="715.0" class="label" text-anchor="end">15</text>
+<rect x="248.0" y="691.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="361.2" y="715.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="480.5" y="691.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="593.8" y="715.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="713.0" y="691.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="826.2" y="715.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="945.5" y="691.0" width="226.5" height="38.0" rx="5" fill="#ead19d" stroke="#e2e8f0"/>
+<text x="1058.8" y="715.0" class="value" text-anchor="middle" fill="#0f172a">1</text>
+<text x="210.0" y="759.0" class="label" text-anchor="end">16</text>
+<rect x="248.0" y="735.0" width="226.5" height="38.0" rx="5" fill="#e87272" stroke="#e2e8f0"/>
+<text x="361.2" y="759.0" class="value" text-anchor="middle" fill="#0f172a">5</text>
+<rect x="480.5" y="735.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="593.8" y="759.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="713.0" y="735.0" width="226.5" height="38.0" rx="5" fill="#aac2f7" stroke="#e2e8f0"/>
+<text x="826.2" y="759.0" class="value" text-anchor="middle" fill="#0f172a">1</text>
+<rect x="945.5" y="735.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="1058.8" y="759.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<text x="210.0" y="803.0" class="label" text-anchor="end">17</text>
+<rect x="248.0" y="779.0" width="226.5" height="38.0" rx="5" fill="#e76868" stroke="#e2e8f0"/>
+<text x="361.2" y="803.0" class="value" text-anchor="middle" fill="#ffffff">6</text>
+<rect x="480.5" y="779.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="593.8" y="803.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="713.0" y="779.0" width="226.5" height="38.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="826.2" y="803.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="945.5" y="779.0" width="226.5" height="38.0" rx="5" fill="#e2bf76" stroke="#e2e8f0"/>
+<text x="1058.8" y="803.0" class="value" text-anchor="middle" fill="#0f172a">3</text>
+<text x="45.0" y="863.0" class="subtitle" text-anchor="start">Cell values are potion units sold; darker cells represent more units.</text>
+</svg>

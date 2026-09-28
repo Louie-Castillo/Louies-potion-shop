@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="780" viewBox="0 0 1280 780">
+<style>
+text { font-family: Arial, Helvetica, sans-serif; fill: #0f172a; }
+.title { font-size: 30px; font-weight: 700; }
+.subtitle { font-size: 16px; fill: #475569; }
+.heading { font-size: 17px; font-weight: 700; }
+.label { font-size: 14px; fill: #334155; }
+.tick { font-size: 12px; fill: #64748b; }
+.value { font-size: 14px; font-weight: 700; }
+</style>
+<title>Potion sales by game hour</title>
+<desc>Four time-series panels show units sold for every catalog potion during each game hour.</desc>
+<rect width="1280" height="780" fill="#ffffff"/>
+<text x="55.0" y="52.0" class="title" text-anchor="start">Potion Sales by Game Hour</text>
+<text x="55.0" y="80.0" class="subtitle" text-anchor="start">Actual checkout-ledger sales aggregated across recorded game days</text>
+<rect x="55" y="115" width="570" height="270" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+<circle cx="79" cy="142" r="7" fill="#dc2626"/>
+<text x="95.0" y="147.0" class="heading" text-anchor="start">Red Potion</text>
+<text x="95.0" y="168.0" class="tick" text-anchor="start">RED_POTION_0</text>
+<text x="603.0" y="147.0" class="label" text-anchor="end">58 units total</text>
+<line x1="110" y1="337.0" x2="601" y2="337.0" stroke="#e2e8f0"/>
+<text x="100.0" y="341.0" class="tick" text-anchor="end">0</text>
+<line x1="110" y1="288.3" x2="601" y2="288.3" stroke="#e2e8f0"/>
+<text x="100.0" y="292.3" class="tick" text-anchor="end">5</text>
+<line x1="110" y1="239.7" x2="601" y2="239.7" stroke="#e2e8f0"/>
+<text x="100.0" y="243.7" class="tick" text-anchor="end">10</text>
+<line x1="110" y1="191.0" x2="601" y2="191.0" stroke="#e2e8f0"/>
+<text x="100.0" y="195.0" class="tick" text-anchor="end">15</text>
+<line x1="110.0" y1="191" x2="110.0" y2="337" stroke="#f1f5f9"/>
+<text x="110.0" y="357.0" class="tick" text-anchor="middle">0</text>
+<line x1="195.4" y1="191" x2="195.4" y2="337" stroke="#f1f5f9"/>
+<text x="195.4" y="357.0" class="tick" text-anchor="middle">4</text>
+<line x1="280.8" y1="191" x2="280.8" y2="337" stroke="#f1f5f9"/>
+<text x="280.8" y="357.0" class="tick" text-anchor="middle">8</text>
+<line x1="366.2" y1="191" x2="366.2" y2="337" stroke="#f1f5f9"/>
+<text x="366.2" y="357.0" class="tick" text-anchor="middle">12</text>
+<line x1="451.6" y1="191" x2="451.6" y2="337" stroke="#f1f5f9"/>
+<text x="451.6" y="357.0" class="tick" text-anchor="middle">16</text>
+<line x1="537.0" y1="191" x2="537.0" y2="337" stroke="#f1f5f9"/>
+<text x="537.0" y="357.0" class="tick" text-anchor="middle">20</text>
+<line x1="601.0" y1="191" x2="601.0" y2="337" stroke="#f1f5f9"/>
+<text x="601.0" y="357.0" class="tick" text-anchor="middle">23</text>
+<polyline points="110.0,307.8 131.3,337.0 152.7,337.0 174.0,337.0 195.4,259.1 216.7,337.0 238.1,317.5 259.4,337.0 280.8,239.7 302.1,337.0 323.5,268.9 344.8,337.0 366.2,210.5 387.5,337.0 408.9,337.0 430.2,337.0 451.6,259.1 472.9,337.0 494.3,337.0 515.6,337.0 537.0,288.3 558.3,337.0 579.7,317.5 601.0,337.0" fill="none" stroke="#dc2626" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="110.0" cy="307.8" r="4" fill="#dc2626"/>
+<text x="110.0" y="298.8" class="tick" text-anchor="middle">3</text>
+<circle cx="195.4" cy="259.1" r="4" fill="#dc2626"/>
+<text x="195.4" y="250.1" class="tick" text-anchor="middle">8</text>
+<circle cx="238.1" cy="317.5" r="4" fill="#dc2626"/>
+<text x="238.1" y="308.5" class="tick" text-anchor="middle">2</text>
+<circle cx="280.8" cy="239.7" r="4" fill="#dc2626"/>
+<text x="280.8" y="230.7" class="tick" text-anchor="middle">10</text>
+<circle cx="323.5" cy="268.9" r="4" fill="#dc2626"/>
+<text x="323.5" y="259.9" class="tick" text-anchor="middle">7</text>
+<circle cx="366.2" cy="210.5" r="4" fill="#dc2626"/>
+<text x="366.2" y="201.5" class="tick" text-anchor="middle">13</text>
+<circle cx="451.6" cy="259.1" r="4" fill="#dc2626"/>
+<text x="451.6" y="250.1" class="tick" text-anchor="middle">8</text>
+<circle cx="537.0" cy="288.3" r="4" fill="#dc2626"/>
+<text x="537.0" y="279.3" class="tick" text-anchor="middle">5</text>
+<circle cx="579.7" cy="317.5" r="4" fill="#dc2626"/>
+<text x="579.7" y="308.5" class="tick" text-anchor="middle">2</text>
+<text x="355.5" y="372.0" class="tick" text-anchor="middle">Game hour</text>
+<rect x="655" y="115" width="570" height="270" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+<circle cx="679" cy="142" r="7" fill="#16a34a"/>
+<text x="695.0" y="147.0" class="heading" text-anchor="start">Green Potion</text>
+<text x="695.0" y="168.0" class="tick" text-anchor="start">GREEN_POTION_0</text>
+<text x="1203.0" y="147.0" class="label" text-anchor="end">8 units total</text>
+<line x1="710" y1="337.0" x2="1201" y2="337.0" stroke="#e2e8f0"/>
+<text x="700.0" y="341.0" class="tick" text-anchor="end">0</text>
+<line x1="710" y1="288.3" x2="1201" y2="288.3" stroke="#e2e8f0"/>
+<text x="700.0" y="292.3" class="tick" text-anchor="end">5</text>
+<line x1="710" y1="239.7" x2="1201" y2="239.7" stroke="#e2e8f0"/>
+<text x="700.0" y="243.7" class="tick" text-anchor="end">10</text>
+<line x1="710" y1="191.0" x2="1201" y2="191.0" stroke="#e2e8f0"/>
+<text x="700.0" y="195.0" class="tick" text-anchor="end">15</text>
+<line x1="710.0" y1="191" x2="710.0" y2="337" stroke="#f1f5f9"/>
+<text x="710.0" y="357.0" class="tick" text-anchor="middle">0</text>
+<line x1="795.4" y1="191" x2="795.4" y2="337" stroke="#f1f5f9"/>
+<text x="795.4" y="357.0" class="tick" text-anchor="middle">4</text>
+<line x1="880.8" y1="191" x2="880.8" y2="337" stroke="#f1f5f9"/>
+<text x="880.8" y="357.0" class="tick" text-anchor="middle">8</text>
+<line x1="966.2" y1="191" x2="966.2" y2="337" stroke="#f1f5f9"/>
+<text x="966.2" y="357.0" class="tick" text-anchor="middle">12</text>
+<line x1="1051.6" y1="191" x2="1051.6" y2="337" stroke="#f1f5f9"/>
+<text x="1051.6" y="357.0" class="tick" text-anchor="middle">16</text>
+<line x1="1137.0" y1="191" x2="1137.0" y2="337" stroke="#f1f5f9"/>
+<text x="1137.0" y="357.0" class="tick" text-anchor="middle">20</text>
+<line x1="1201.0" y1="191" x2="1201.0" y2="337" stroke="#f1f5f9"/>
+<text x="1201.0" y="357.0" class="tick" text-anchor="middle">23</text>
+<polyline points="710.0,337.0 731.3,337.0 752.7,337.0 774.0,337.0 795.4,337.0 816.7,337.0 838.1,317.5 859.4,337.0 880.8,337.0 902.1,337.0 923.5,337.0 944.8,337.0 966.2,337.0 987.5,337.0 1008.9,337.0 1030.2,337.0 1051.6,278.6 1072.9,337.0 1094.3,337.0 1115.6,337.0 1137.0,337.0 1158.3,337.0 1179.7,337.0 1201.0,337.0" fill="none" stroke="#16a34a" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="838.1" cy="317.5" r="4" fill="#16a34a"/>
+<text x="838.1" y="308.5" class="tick" text-anchor="middle">2</text>
+<circle cx="1051.6" cy="278.6" r="4" fill="#16a34a"/>
+<text x="1051.6" y="269.6" class="tick" text-anchor="middle">6</text>
+<text x="955.5" y="372.0" class="tick" text-anchor="middle">Game hour</text>
+<rect x="55" y="420" width="570" height="270" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+<circle cx="79" cy="447" r="7" fill="#2563eb"/>
+<text x="95.0" y="452.0" class="heading" text-anchor="start">Blue Potion</text>
+<text x="95.0" y="473.0" class="tick" text-anchor="start">BLUE_POTION_0</text>
+<text x="603.0" y="452.0" class="label" text-anchor="end">3 units total</text>
+<line x1="110" y1="642.0" x2="601" y2="642.0" stroke="#e2e8f0"/>
+<text x="100.0" y="646.0" class="tick" text-anchor="end">0</text>
+<line x1="110" y1="593.3" x2="601" y2="593.3" stroke="#e2e8f0"/>
+<text x="100.0" y="597.3" class="tick" text-anchor="end">5</text>
+<line x1="110" y1="544.7" x2="601" y2="544.7" stroke="#e2e8f0"/>
+<text x="100.0" y="548.7" class="tick" text-anchor="end">10</text>
+<line x1="110" y1="496.0" x2="601" y2="496.0" stroke="#e2e8f0"/>
+<text x="100.0" y="500.0" class="tick" text-anchor="end">15</text>
+<line x1="110.0" y1="496" x2="110.0" y2="642" stroke="#f1f5f9"/>
+<text x="110.0" y="662.0" class="tick" text-anchor="middle">0</text>
+<line x1="195.4" y1="496" x2="195.4" y2="642" stroke="#f1f5f9"/>
+<text x="195.4" y="662.0" class="tick" text-anchor="middle">4</text>
+<line x1="280.8" y1="496" x2="280.8" y2="642" stroke="#f1f5f9"/>
+<text x="280.8" y="662.0" class="tick" text-anchor="middle">8</text>
+<line x1="366.2" y1="496" x2="366.2" y2="642" stroke="#f1f5f9"/>
+<text x="366.2" y="662.0" class="tick" text-anchor="middle">12</text>
+<line x1="451.6" y1="496" x2="451.6" y2="642" stroke="#f1f5f9"/>
+<text x="451.6" y="662.0" class="tick" text-anchor="middle">16</text>
+<line x1="537.0" y1="496" x2="537.0" y2="642" stroke="#f1f5f9"/>
+<text x="537.0" y="662.0" class="tick" text-anchor="middle">20</text>
+<line x1="601.0" y1="496" x2="601.0" y2="642" stroke="#f1f5f9"/>
+<text x="601.0" y="662.0" class="tick" text-anchor="middle">23</text>
+<polyline points="110.0,632.3 131.3,642.0 152.7,642.0 174.0,642.0 195.4,642.0 216.7,642.0 238.1,642.0 259.4,642.0 280.8,642.0 302.1,642.0 323.5,642.0 344.8,642.0 366.2,632.3 387.5,642.0 408.9,642.0 430.2,642.0 451.6,642.0 472.9,642.0 494.3,642.0 515.6,642.0 537.0,642.0 558.3,642.0 579.7,632.3 601.0,642.0" fill="none" stroke="#2563eb" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="110.0" cy="632.3" r="4" fill="#2563eb"/>
+<text x="110.0" y="623.3" class="tick" text-anchor="middle">1</text>
+<circle cx="366.2" cy="632.3" r="4" fill="#2563eb"/>
+<text x="366.2" y="623.3" class="tick" text-anchor="middle">1</text>
+<circle cx="579.7" cy="632.3" r="4" fill="#2563eb"/>
+<text x="579.7" y="623.3" class="tick" text-anchor="middle">1</text>
+<text x="355.5" y="677.0" class="tick" text-anchor="middle">Game hour</text>
+<rect x="655" y="420" width="570" height="270" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+<circle cx="679" cy="447" r="7" fill="#ca8a04"/>
+<text x="695.0" y="452.0" class="heading" text-anchor="start">Yellow Potion</text>
+<text x="695.0" y="473.0" class="tick" text-anchor="start">YELLOW_POTION_0</text>
+<text x="1203.0" y="452.0" class="label" text-anchor="end">6 units total</text>
+<line x1="710" y1="642.0" x2="1201" y2="642.0" stroke="#e2e8f0"/>
+<text x="700.0" y="646.0" class="tick" text-anchor="end">0</text>
+<line x1="710" y1="593.3" x2="1201" y2="593.3" stroke="#e2e8f0"/>
+<text x="700.0" y="597.3" class="tick" text-anchor="end">5</text>
+<line x1="710" y1="544.7" x2="1201" y2="544.7" stroke="#e2e8f0"/>
+<text x="700.0" y="548.7" class="tick" text-anchor="end">10</text>
+<line x1="710" y1="496.0" x2="1201" y2="496.0" stroke="#e2e8f0"/>
+<text x="700.0" y="500.0" class="tick" text-anchor="end">15</text>
+<line x1="710.0" y1="496" x2="710.0" y2="642" stroke="#f1f5f9"/>
+<text x="710.0" y="662.0" class="tick" text-anchor="middle">0</text>
+<line x1="795.4" y1="496" x2="795.4" y2="642" stroke="#f1f5f9"/>
+<text x="795.4" y="662.0" class="tick" text-anchor="middle">4</text>
+<line x1="880.8" y1="496" x2="880.8" y2="642" stroke="#f1f5f9"/>
+<text x="880.8" y="662.0" class="tick" text-anchor="middle">8</text>
+<line x1="966.2" y1="496" x2="966.2" y2="642" stroke="#f1f5f9"/>
+<text x="966.2" y="662.0" class="tick" text-anchor="middle">12</text>
+<line x1="1051.6" y1="496" x2="1051.6" y2="642" stroke="#f1f5f9"/>
+<text x="1051.6" y="662.0" class="tick" text-anchor="middle">16</text>
+<line x1="1137.0" y1="496" x2="1137.0" y2="642" stroke="#f1f5f9"/>
+<text x="1137.0" y="662.0" class="tick" text-anchor="middle">20</text>
+<line x1="1201.0" y1="496" x2="1201.0" y2="642" stroke="#f1f5f9"/>
+<text x="1201.0" y="662.0" class="tick" text-anchor="middle">23</text>
+<polyline points="710.0,642.0 731.3,642.0 752.7,642.0 774.0,642.0 795.4,642.0 816.7,642.0 838.1,642.0 859.4,642.0 880.8,642.0 902.1,642.0 923.5,642.0 944.8,642.0 966.2,632.3 987.5,642.0 1008.9,632.3 1030.2,642.0 1051.6,632.3 1072.9,642.0 1094.3,642.0 1115.6,642.0 1137.0,612.8 1158.3,642.0 1179.7,642.0 1201.0,642.0" fill="none" stroke="#ca8a04" stroke-width="3" stroke-linejoin="round"/>
+<circle cx="966.2" cy="632.3" r="4" fill="#ca8a04"/>
+<text x="966.2" y="623.3" class="tick" text-anchor="middle">1</text>
+<circle cx="1008.9" cy="632.3" r="4" fill="#ca8a04"/>
+<text x="1008.9" y="623.3" class="tick" text-anchor="middle">1</text>
+<circle cx="1051.6" cy="632.3" r="4" fill="#ca8a04"/>
+<text x="1051.6" y="623.3" class="tick" text-anchor="middle">1</text>
+<circle cx="1137.0" cy="612.8" r="4" fill="#ca8a04"/>
+<text x="1137.0" y="603.8" class="tick" text-anchor="middle">3</text>
+<text x="955.5" y="677.0" class="tick" text-anchor="middle">Game hour</text>
+<text x="55.0" y="745.0" class="subtitle" text-anchor="start">Source: inventory_transactions + potion_ledger_entries + potions</text>
+</svg>

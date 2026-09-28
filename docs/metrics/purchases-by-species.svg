@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="446" viewBox="0 0 1220 446">
+<style>
+text { font-family: Arial, Helvetica, sans-serif; fill: #0f172a; }
+.title { font-size: 30px; font-weight: 700; }
+.subtitle { font-size: 16px; fill: #475569; }
+.heading { font-size: 17px; font-weight: 700; }
+.label { font-size: 14px; fill: #334155; }
+.tick { font-size: 12px; fill: #64748b; }
+.value { font-size: 14px; font-weight: 700; }
+</style>
+<title>Potion Purchases by Customer Species</title>
+<desc>Completed checkout units grouped by species and potion</desc>
+<rect width="1220" height="446" fill="#ffffff"/>
+<text x="45.0" y="50.0" class="title" text-anchor="start">Potion Purchases by Customer Species</text>
+<text x="45.0" y="79.0" class="subtitle" text-anchor="start">Completed checkout units grouped by species and potion</text>
+<text x="210.0" y="137.0" class="heading" text-anchor="end">Species</text>
+<circle cx="313.2" cy="132" r="6" fill="#dc2626"/>
+<text x="325.2" y="137.0" class="heading" text-anchor="start">Red Potion</text>
+<circle cx="545.8" cy="132" r="6" fill="#16a34a"/>
+<text x="557.8" y="137.0" class="heading" text-anchor="start">Green Potion</text>
+<circle cx="778.2" cy="132" r="6" fill="#2563eb"/>
+<text x="790.2" y="137.0" class="heading" text-anchor="start">Blue Potion</text>
+<circle cx="1010.8" cy="132" r="6" fill="#ca8a04"/>
+<text x="1022.8" y="137.0" class="heading" text-anchor="start">Yellow Potion</text>
+<text x="210.0" y="192.0" class="label" text-anchor="end">Dvergar</text>
+<rect x="248.0" y="163.0" width="226.5" height="48.0" rx="5" fill="#ee9696" stroke="#e2e8f0"/>
+<text x="361.2" y="192.0" class="value" text-anchor="middle" fill="#0f172a">8</text>
+<rect x="480.5" y="163.0" width="226.5" height="48.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="593.8" y="192.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="713.0" y="163.0" width="226.5" height="48.0" rx="5" fill="#c0d2f9" stroke="#e2e8f0"/>
+<text x="826.2" y="192.0" class="value" text-anchor="middle" fill="#0f172a">1</text>
+<rect x="945.5" y="163.0" width="226.5" height="48.0" rx="5" fill="#edd8ac" stroke="#e2e8f0"/>
+<text x="1058.8" y="192.0" class="value" text-anchor="middle" fill="#0f172a">2</text>
+<text x="210.0" y="246.0" class="label" text-anchor="end">Folk</text>
+<rect x="248.0" y="217.0" width="226.5" height="48.0" rx="5" fill="#e04040" stroke="#e2e8f0"/>
+<text x="361.2" y="246.0" class="value" text-anchor="middle" fill="#ffffff">43</text>
+<rect x="480.5" y="217.0" width="226.5" height="48.0" rx="5" fill="#98d6af" stroke="#e2e8f0"/>
+<text x="593.8" y="246.0" class="value" text-anchor="middle" fill="#0f172a">6</text>
+<rect x="713.0" y="217.0" width="226.5" height="48.0" rx="5" fill="#c0d2f9" stroke="#e2e8f0"/>
+<text x="826.2" y="246.0" class="value" text-anchor="middle" fill="#0f172a">1</text>
+<rect x="945.5" y="217.0" width="226.5" height="48.0" rx="5" fill="#ecd4a3" stroke="#e2e8f0"/>
+<text x="1058.8" y="246.0" class="value" text-anchor="middle" fill="#0f172a">3</text>
+<text x="210.0" y="300.0" class="label" text-anchor="end">Jötnar</text>
+<rect x="248.0" y="271.0" width="226.5" height="48.0" rx="5" fill="#f1aaaa" stroke="#e2e8f0"/>
+<text x="361.2" y="300.0" class="value" text-anchor="middle" fill="#0f172a">4</text>
+<rect x="480.5" y="271.0" width="226.5" height="48.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="593.8" y="300.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="713.0" y="271.0" width="226.5" height="48.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="826.2" y="300.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<rect x="945.5" y="271.0" width="226.5" height="48.0" rx="5" fill="#f0ddb7" stroke="#e2e8f0"/>
+<text x="1058.8" y="300.0" class="value" text-anchor="middle" fill="#0f172a">1</text>
+<text x="210.0" y="354.0" class="label" text-anchor="end">Álfar</text>
+<rect x="248.0" y="325.0" width="226.5" height="48.0" rx="5" fill="#f2b0b0" stroke="#e2e8f0"/>
+<text x="361.2" y="354.0" class="value" text-anchor="middle" fill="#0f172a">3</text>
+<rect x="480.5" y="325.0" width="226.5" height="48.0" rx="5" fill="#b2e1c3" stroke="#e2e8f0"/>
+<text x="593.8" y="354.0" class="value" text-anchor="middle" fill="#0f172a">2</text>
+<rect x="713.0" y="325.0" width="226.5" height="48.0" rx="5" fill="#c0d2f9" stroke="#e2e8f0"/>
+<text x="826.2" y="354.0" class="value" text-anchor="middle" fill="#0f172a">1</text>
+<rect x="945.5" y="325.0" width="226.5" height="48.0" rx="5" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="1058.8" y="354.0" class="value" text-anchor="middle" fill="#0f172a">0</text>
+<text x="45.0" y="419.0" class="subtitle" text-anchor="start">Cell values are potion units sold; darker cells represent more units.</text>
+</svg>
