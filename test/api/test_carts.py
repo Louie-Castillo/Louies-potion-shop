@@ -322,6 +322,85 @@ def test_search_orders_filters_by_customer_and_potion_sku(
     assert response.next is None
 
 
+@pytest.mark.parametrize(
+    ("sort_col", "sort_order", "expected_line_item_ids"),
+    [
+        (
+            carts.SearchSortOptions.customer_name,
+            carts.SearchSortOrder.asc,
+            [100, 101, 102],
+        ),
+        (
+            carts.SearchSortOptions.customer_name,
+            carts.SearchSortOrder.desc,
+            [102, 101, 100],
+        ),
+        (
+            carts.SearchSortOptions.item_sku,
+            carts.SearchSortOrder.asc,
+            [100, 101, 102],
+        ),
+        (
+            carts.SearchSortOptions.item_sku,
+            carts.SearchSortOrder.desc,
+            [102, 101, 100],
+        ),
+        (
+            carts.SearchSortOptions.line_item_total,
+            carts.SearchSortOrder.asc,
+            [101, 100, 102],
+        ),
+        (
+            carts.SearchSortOptions.line_item_total,
+            carts.SearchSortOrder.desc,
+            [102, 100, 101],
+        ),
+        (
+            carts.SearchSortOptions.timestamp,
+            carts.SearchSortOrder.asc,
+            [100, 101, 102],
+        ),
+        (
+            carts.SearchSortOptions.timestamp,
+            carts.SearchSortOrder.desc,
+            [102, 101, 100],
+        ),
+    ],
+)
+def test_search_orders_sorts_by_each_supported_column_and_direction(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+    sort_col: carts.SearchSortOptions,
+    sort_order: carts.SearchSortOrder,
+    expected_line_item_ids: list[int],
+) -> None:
+    seed_search_orders(v3_engine)
+    monkeypatch.setattr(carts.db, "engine", v3_engine)
+
+    response = carts.search_orders(
+        sort_col=sort_col,
+        sort_order=sort_order,
+    )
+
+    assert [item.line_item_id for item in response.results] == expected_line_item_ids
+
+
+def test_search_orders_combines_filters_and_sorting(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+) -> None:
+    seed_search_orders(v3_engine)
+    monkeypatch.setattr(carts.db, "engine", v3_engine)
+
+    response = carts.search_orders(
+        potion_sku="yellow",
+        sort_col=carts.SearchSortOptions.line_item_total,
+        sort_order=carts.SearchSortOrder.asc,
+    )
+
+    assert [item.line_item_id for item in response.results] == [101, 102]
+
+
 def test_create_cart_reuses_open_cart_but_not_checked_out_cart(
     monkeypatch: pytest.MonkeyPatch,
     v3_engine: Engine,

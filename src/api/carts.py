@@ -27,6 +27,14 @@ class SearchSortOrder(str, Enum):
     desc = "desc"
 
 
+SEARCH_SORT_COLUMNS = {
+    SearchSortOptions.customer_name: "LOWER(carts.customer_name)",
+    SearchSortOptions.item_sku: "LOWER(potions.sku)",
+    SearchSortOptions.line_item_total: "cart_items.quantity * potions.price",
+    SearchSortOptions.timestamp: "carts.checked_out_at",
+}
+
+
 class LineItem(BaseModel):
     line_item_id: int
     item_sku: str
@@ -89,6 +97,8 @@ def search_orders(
         parameters["potion_sku"] = f"%{normalized_potion_sku}%"
 
     where_clause = " AND ".join(conditions)
+    sort_expression = SEARCH_SORT_COLUMNS[sort_col]
+    sort_direction = "ASC" if sort_order == SearchSortOrder.asc else "DESC"
 
     with db.engine.begin() as connection:
         rows = connection.execute(
@@ -107,8 +117,8 @@ def search_orders(
                     ON potions.id = cart_items.potion_id
                 WHERE {where_clause}
                 ORDER BY
-                    carts.checked_out_at DESC,
-                    cart_items.id DESC
+                    {sort_expression} {sort_direction},
+                    cart_items.id {sort_direction}
                 """
             ),
             parameters,
