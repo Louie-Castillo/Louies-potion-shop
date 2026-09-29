@@ -33,6 +33,7 @@ SEARCH_SORT_COLUMNS = {
     SearchSortOptions.line_item_total: "cart_items.quantity * potions.price",
     SearchSortOptions.timestamp: "carts.checked_out_at",
 }
+SEARCH_PAGE_SIZE = 5
 
 
 class LineItem(BaseModel):
@@ -68,6 +69,15 @@ def format_search_timestamp(value: Any) -> str:
     return parsed_timestamp.isoformat().replace("+00:00", "Z")
 
 
+def parse_search_page(search_page: str) -> int:
+    try:
+        page = int(search_page)
+    except ValueError:
+        return 0
+
+    return max(page, 0)
+
+
 @router.get("/search/", response_model=SearchResponse, tags=["search"])
 def search_orders(
     customer_name: str = "",
@@ -99,6 +109,9 @@ def search_orders(
     where_clause = " AND ".join(conditions)
     sort_expression = SEARCH_SORT_COLUMNS[sort_col]
     sort_direction = "ASC" if sort_order == SearchSortOrder.asc else "DESC"
+    page = parse_search_page(search_page)
+    parameters["page_size"] = SEARCH_PAGE_SIZE + 1
+    parameters["offset"] = page * SEARCH_PAGE_SIZE
 
     with db.engine.begin() as connection:
         rows = connection.execute(
@@ -119,14 +132,19 @@ def search_orders(
                 ORDER BY
                     {sort_expression} {sort_direction},
                     cart_items.id {sort_direction}
+                LIMIT :page_size
+                OFFSET :offset
                 """
             ),
             parameters,
         ).all()
 
+    has_next_page = len(rows) > SEARCH_PAGE_SIZE
+    page_rows = rows[:SEARCH_PAGE_SIZE]
+
     return SearchResponse(
-        previous=None,
-        next=None,
+        previous=str(page - 1) if page > 0 else None,
+        next=str(page + 1) if has_next_page else None,
         results=[
             LineItem(
                 line_item_id=int(row.line_item_id),
@@ -135,7 +153,7 @@ def search_orders(
                 line_item_total=int(row.line_item_total),
                 timestamp=format_search_timestamp(row.timestamp),
             )
-            for row in rows
+            for row in page_rows
         ],
     )
 

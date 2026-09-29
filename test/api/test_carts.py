@@ -97,6 +97,54 @@ def seed_search_orders(engine: Engine) -> None:
         )
 
 
+def seed_paginated_search_orders(engine: Engine) -> None:
+    seed_search_orders(engine)
+
+    with engine.begin() as connection:
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO carts (
+                    id,
+                    customer_id,
+                    customer_name,
+                    character_class,
+                    character_species,
+                    level,
+                    checked_out,
+                    checked_out_at
+                )
+                VALUES
+                    (13, 'customer-13', 'Dax', 'Mage', 'Folk', 4, TRUE,
+                        '2026-09-02 08:00:00'),
+                    (14, 'customer-14', 'Eira', 'Knight', 'Alfar', 6, TRUE,
+                        '2026-09-03 08:00:00'),
+                    (15, 'customer-15', 'Finn', 'Rogue', 'Folk', 7, TRUE,
+                        '2026-09-04 08:00:00'),
+                    (16, 'customer-16', 'Gwen', 'Seer', 'Alfar', 9, TRUE,
+                        '2026-09-05 08:00:00')
+                """
+            )
+        )
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO cart_items (
+                    id,
+                    cart_id,
+                    potion_id,
+                    quantity
+                )
+                VALUES
+                    (104, 13, 1, 1),
+                    (105, 14, 1, 2),
+                    (106, 15, 1, 3),
+                    (107, 16, 1, 4)
+                """
+            )
+        )
+
+
 def seed_checkout(
     engine: Engine,
     available_quantity: int,
@@ -399,6 +447,128 @@ def test_search_orders_combines_filters_and_sorting(
     )
 
     assert [item.line_item_id for item in response.results] == [101, 102]
+
+
+def test_search_orders_paginates_forward_and_backward(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+) -> None:
+    seed_paginated_search_orders(v3_engine)
+    monkeypatch.setattr(carts.db, "engine", v3_engine)
+
+    first_page = carts.search_orders()
+    second_page = carts.search_orders(search_page=first_page.next or "")
+
+    assert [item.line_item_id for item in first_page.results] == [
+        107,
+        106,
+        105,
+        104,
+        102,
+    ]
+    assert first_page.previous is None
+    assert first_page.next == "1"
+    assert [item.line_item_id for item in second_page.results] == [101, 100]
+    assert second_page.previous == "0"
+    assert second_page.next is None
+
+    previous_page = carts.search_orders(search_page=second_page.previous or "")
+
+    assert previous_page == first_page
+
+
+def test_search_orders_does_not_offer_next_for_exactly_full_last_page(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+) -> None:
+    seed_paginated_search_orders(v3_engine)
+    monkeypatch.setattr(carts.db, "engine", v3_engine)
+
+    response = carts.search_orders(potion_sku="red")
+
+    assert len(response.results) == carts.SEARCH_PAGE_SIZE
+    assert response.previous is None
+    assert response.next is None
+
+
+@pytest.mark.parametrize("search_page", ["", "not-a-page", "-3"])
+def test_search_orders_invalid_page_tokens_use_the_first_page(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+    search_page: str,
+) -> None:
+    seed_paginated_search_orders(v3_engine)
+    monkeypatch.setattr(carts.db, "engine", v3_engine)
+
+    response = carts.search_orders(search_page=search_page)
+
+    assert [item.line_item_id for item in response.results] == [
+        107,
+        106,
+        105,
+        104,
+        102,
+    ]
+    assert response.previous is None
+    assert response.next == "1"
+
+
+def test_search_orders_combines_all_search_options(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+) -> None:
+    seed_paginated_search_orders(v3_engine)
+    monkeypatch.setattr(carts.db, "engine", v3_engine)
+
+    response = carts.search_orders(
+        customer_name="a",
+        potion_sku="potion",
+        sort_col=carts.SearchSortOptions.customer_name,
+        sort_order=carts.SearchSortOrder.asc,
+        search_page="0",
+    )
+
+    assert response.model_dump() == {
+        "previous": None,
+        "next": None,
+        "results": [
+            {
+                "line_item_id": 100,
+                "item_sku": "RED_POTION_0",
+                "customer_name": "Ada",
+                "line_item_total": 100,
+                "timestamp": "2026-09-01T08:00:00Z",
+            },
+            {
+                "line_item_id": 101,
+                "item_sku": "YELLOW_POTION_0",
+                "customer_name": "Ada",
+                "line_item_total": 60,
+                "timestamp": "2026-09-01T08:00:00Z",
+            },
+            {
+                "line_item_id": 102,
+                "item_sku": "YELLOW_POTION_0",
+                "customer_name": "Bram",
+                "line_item_total": 180,
+                "timestamp": "2026-09-01T10:00:00Z",
+            },
+            {
+                "line_item_id": 104,
+                "item_sku": "RED_POTION_0",
+                "customer_name": "Dax",
+                "line_item_total": 50,
+                "timestamp": "2026-09-02T08:00:00Z",
+            },
+            {
+                "line_item_id": 105,
+                "item_sku": "RED_POTION_0",
+                "customer_name": "Eira",
+                "line_item_total": 100,
+                "timestamp": "2026-09-03T08:00:00Z",
+            },
+        ],
+    }
 
 
 def test_create_cart_reuses_open_cart_but_not_checked_out_cart(
