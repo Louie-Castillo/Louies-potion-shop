@@ -289,6 +289,39 @@ def test_search_orders_returns_empty_results_when_no_orders_exist(
     )
 
 
+@pytest.mark.parametrize(
+    ("customer_name", "potion_sku", "expected_line_item_ids"),
+    [
+        ("ad", "", [101, 100]),
+        ("ADA", "", [101, 100]),
+        ("", "yellow", [102, 101]),
+        ("", "YELLOW_POTION", [102, 101]),
+        ("ada", "red", [100]),
+        ("bram", "red", []),
+        ("nobody", "", []),
+        ("   ", "   ", [102, 101, 100]),
+    ],
+)
+def test_search_orders_filters_by_customer_and_potion_sku(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+    customer_name: str,
+    potion_sku: str,
+    expected_line_item_ids: list[int],
+) -> None:
+    seed_search_orders(v3_engine)
+    monkeypatch.setattr(carts.db, "engine", v3_engine)
+
+    response = carts.search_orders(
+        customer_name=customer_name,
+        potion_sku=potion_sku,
+    )
+
+    assert [item.line_item_id for item in response.results] == expected_line_item_ids
+    assert response.previous is None
+    assert response.next is None
+
+
 def test_create_cart_reuses_open_cart_but_not_checked_out_cart(
     monkeypatch: pytest.MonkeyPatch,
     v3_engine: Engine,

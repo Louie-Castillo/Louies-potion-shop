@@ -71,10 +71,29 @@ def search_orders(
     """
     Search for cart line items by customer name and/or potion sku.
     """
+    conditions = [
+        "carts.checked_out = TRUE",
+        "carts.checked_out_at IS NOT NULL",
+    ]
+    parameters: dict[str, object] = {}
+
+    normalized_customer_name = customer_name.strip().lower()
+    normalized_potion_sku = potion_sku.strip().lower()
+
+    if normalized_customer_name:
+        conditions.append("LOWER(carts.customer_name) LIKE :customer_name")
+        parameters["customer_name"] = f"%{normalized_customer_name}%"
+
+    if normalized_potion_sku:
+        conditions.append("LOWER(potions.sku) LIKE :potion_sku")
+        parameters["potion_sku"] = f"%{normalized_potion_sku}%"
+
+    where_clause = " AND ".join(conditions)
+
     with db.engine.begin() as connection:
         rows = connection.execute(
             sqlalchemy.text(
-                """
+                f"""
                 SELECT
                     cart_items.id AS line_item_id,
                     potions.sku AS item_sku,
@@ -86,14 +105,13 @@ def search_orders(
                     ON cart_items.cart_id = carts.id
                 JOIN potions
                     ON potions.id = cart_items.potion_id
-                WHERE
-                    carts.checked_out = TRUE
-                    AND carts.checked_out_at IS NOT NULL
+                WHERE {where_clause}
                 ORDER BY
                     carts.checked_out_at DESC,
                     cart_items.id DESC
                 """
-            )
+            ),
+            parameters,
         ).all()
 
     return SearchResponse(
