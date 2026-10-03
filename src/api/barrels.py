@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 import sqlalchemy
 from src.api import auth
 from src import database as db
-from src import idempotency, ledger
+from src import idempotency, ledger, strategy
 
 router = APIRouter(
     prefix="/barrels",
@@ -241,7 +241,7 @@ def create_barrel_plan(
         max_barrel_capacity - sum(current_ml),
     )
 
-    if gold <= 0 or remaining_capacity == 0:
+    if gold < 0 or remaining_capacity == 0:
         return []
 
     # Dark ingredients cannot be stored in global_inventory yet.
@@ -275,14 +275,53 @@ def create_barrel_plan(
     if not candidates:
         return []
 
+    def bottles_possible(ingredient_amounts: List[int]) -> int:
+        limits = [
+            ingredient_amounts[index] // recipe_amount
+            for index, recipe_amount in enumerate(target_potion_type)
+            if recipe_amount > 0
+        ]
+        return min(limits, default=0)
+
+    current_bottles = bottles_possible(current_ml)
+    scored_candidates: list[tuple[Barrel, int, float, int]] = []
+
+    for barrel in candidates:
+        delivered_ml = [
+            round(barrel.ml_per_barrel * proportion)
+            for proportion in barrel.potion_type
+        ]
+        future_ml = [
+            current_amount + delivered_amount
+            for current_amount, delivered_amount in zip(current_ml, delivered_ml)
+        ]
+        bottle_gain = bottles_possible(future_ml) - current_bottles
+        remaining_gold = gold - barrel.price
+
+        # Never spend the final gold on ingredients that still cannot produce
+        # another target potion. That creates an unrecoverable empty catalog.
+        if remaining_gold == 0 and bottle_gain <= 0:
+            continue
+
+        useful_ml = sum(delivered_ml[index] for index in required_ingredients)
+        useful_ml_per_gold = (
+            float("inf") if barrel.price == 0 else useful_ml / barrel.price
+        )
+        scored_candidates.append((barrel, bottle_gain, useful_ml_per_gold, useful_ml))
+
+    if not scored_candidates:
+        return []
+
     selected_barrel = min(
-        candidates,
-        key=lambda barrel: (
-            barrel.ml_per_barrel,
-            barrel.price,
-            barrel.sku,
+        scored_candidates,
+        key=lambda candidate: (
+            -candidate[1],
+            -candidate[2],
+            -candidate[3],
+            candidate[0].price,
+            candidate[0].sku,
         ),
-    )
+    )[0]
 
     return [
         BarrelOrder(
@@ -306,6 +345,7 @@ def get_wholesale_purchase_plan(
         gold = ledger.get_current_gold(connection)
         ingredients = ledger.get_current_ingredients(connection)
         potion_quantities = ledger.get_current_potion_quantities(connection)
+        potion_sales = ledger.get_potion_sales_quantities(connection)
 
         potion_rows = connection.execute(
             sqlalchemy.text(
@@ -384,10 +424,22 @@ def get_wholesale_purchase_plan(
                 ],
             )
 
-    target_potion = min(
-        potion_rows,
+    target_inventory = strategy.allocate_inventory_targets(
+        (int(row.id) for row in potion_rows),
+        potion_sales,
+        capacity=50,
+    )
+    target_candidates = [
+        row
+        for row in potion_rows
+        if row.dark_ml == 0
+        and target_inventory.get(int(row.id), 0) > potion_quantities.get(int(row.id), 0)
+    ]
+
+    target_potion = max(
+        target_candidates,
         key=lambda row: (
-            potion_quantities.get(int(row.id), 0),
+            target_inventory[int(row.id)] - potion_quantities.get(int(row.id), 0),
             -sum(
                 amount > 0
                 for amount in (
@@ -397,7 +449,7 @@ def get_wholesale_purchase_plan(
                     row.dark_ml,
                 )
             ),
-            int(row.id),
+            -int(row.id),
         ),
         default=None,
     )

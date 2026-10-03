@@ -110,6 +110,28 @@ def get_current_potion_quantities(
     return {int(row.potion_id): int(row.quantity) for row in rows}
 
 
+def get_potion_sales_quantities(connection: Connection) -> dict[int, int]:
+    rows = connection.execute(
+        sqlalchemy.text(
+            """
+            SELECT
+                ple.potion_id,
+                COALESCE(SUM(-ple.change), 0) AS units_sold
+            FROM inventory_transactions AS transactions
+            JOIN potion_ledger_entries AS ple
+                ON ple.transaction_id = transactions.id
+            WHERE
+                transactions.transaction_type = 'checkout'
+                AND ple.change < 0
+            GROUP BY ple.potion_id
+            ORDER BY ple.potion_id
+            """
+        )
+    ).all()
+
+    return {int(row.potion_id): int(row.units_sold) for row in rows}
+
+
 def get_total_potions(connection: Connection) -> int:
     result = connection.execute(
         sqlalchemy.text(

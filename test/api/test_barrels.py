@@ -428,6 +428,131 @@ def test_cant_afford_barrel_plan() -> None:
     assert len(barrel_orders) == 0
 
 
+def test_startup_plan_chooses_barrel_that_unlocks_a_potion() -> None:
+    wholesale_catalog = [
+        Barrel(
+            sku="UNUSABLE_MIXED_BARREL",
+            ml_per_barrel=100,
+            potion_type=[0.33, 0.34, 0.33, 0],
+            price=100,
+            quantity=1,
+        ),
+        Barrel(
+            sku="PURE_RED_BARREL",
+            ml_per_barrel=100,
+            potion_type=[1, 0, 0, 0],
+            price=100,
+            quantity=1,
+        ),
+    ]
+
+    plan = create_barrel_plan(
+        gold=100,
+        max_barrel_capacity=10000,
+        current_ml=[0, 0, 0, 0],
+        target_potion_type=[100, 0, 0, 0],
+        wholesale_catalog=wholesale_catalog,
+    )
+
+    assert plan == [BarrelOrder(sku="PURE_RED_BARREL", quantity=1)]
+
+
+def test_startup_plan_preserves_gold_when_no_barrel_unlocks_a_potion() -> None:
+    plan = create_barrel_plan(
+        gold=100,
+        max_barrel_capacity=10000,
+        current_ml=[0, 0, 0, 0],
+        target_potion_type=[100, 0, 0, 0],
+        wholesale_catalog=[
+            Barrel(
+                sku="UNUSABLE_MIXED_BARREL",
+                ml_per_barrel=100,
+                potion_type=[0.33, 0.34, 0.33, 0],
+                price=100,
+                quantity=1,
+            )
+        ],
+    )
+
+    assert plan == []
+
+
+def test_wholesale_plan_starts_with_brewable_pure_potion(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+) -> None:
+    with v3_engine.begin() as connection:
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO potions (
+                    id,
+                    sku,
+                    name,
+                    quantity,
+                    price,
+                    red_ml,
+                    green_ml,
+                    blue_ml,
+                    dark_ml
+                )
+                VALUES
+                    (1, 'RED_POTION_0', 'red potion', 0, 50, 100, 0, 0, 0),
+                    (2, 'GREEN_POTION_0', 'green potion', 0, 50, 0, 100, 0, 0),
+                    (3, 'BLUE_POTION_0', 'blue potion', 0, 50, 0, 0, 100, 0),
+                    (4, 'YELLOW_POTION_0', 'yellow potion', 0, 60, 50, 50, 0, 0)
+                """
+            )
+        )
+        transaction_id = connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO inventory_transactions (
+                    transaction_type,
+                    description
+                )
+                VALUES ('opening_balance', 'Test starting gold')
+                RETURNING id
+                """
+            )
+        ).scalar_one()
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO gold_ledger_entries (
+                    transaction_id,
+                    change
+                )
+                VALUES (:transaction_id, 100)
+                """
+            ),
+            {"transaction_id": transaction_id},
+        )
+
+    monkeypatch.setattr(barrels_api.db, "engine", v3_engine)
+
+    plan = barrels_api.get_wholesale_purchase_plan(
+        [
+            Barrel(
+                sku="UNUSABLE_MIXED_BARREL",
+                ml_per_barrel=100,
+                potion_type=[0.33, 0.34, 0.33, 0],
+                price=100,
+                quantity=1,
+            ),
+            Barrel(
+                sku="PURE_RED_BARREL",
+                ml_per_barrel=100,
+                potion_type=[1, 0, 0, 0],
+                price=100,
+                quantity=1,
+            ),
+        ]
+    )
+
+    assert plan == [BarrelOrder(sku="PURE_RED_BARREL", quantity=1)]
+
+
 def test_barrel_plan_records_each_offer_once_per_game_time(
     monkeypatch: pytest.MonkeyPatch,
     v3_engine: Engine,

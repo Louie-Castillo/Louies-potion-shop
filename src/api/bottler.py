@@ -4,7 +4,7 @@ from typing import List
 from src.api import auth
 import sqlalchemy
 from src import database as db
-from src import idempotency, ledger
+from src import idempotency, ledger, strategy
 
 router = APIRouter(
     prefix="/bottler",
@@ -42,6 +42,7 @@ class PotionInventory(BaseModel):
         description="Must contain exactly 4 elements: [r, g, b, d]",
     )
     quantity: int = Field(ge=0)
+    target_quantity: int | None = Field(default=None, ge=0)
 
     @field_validator("potion_type")
     @classmethod
@@ -320,6 +321,12 @@ def create_bottle_plan(
             min(ingredient_limits),
         )
 
+        if potion.target_quantity is not None:
+            quantity_to_make = min(
+                quantity_to_make,
+                max(0, potion.target_quantity - potion.quantity),
+            )
+
         if quantity_to_make == 0:
             continue
 
@@ -346,6 +353,7 @@ def get_bottle_plan() -> List[PotionMixes]:
     with db.engine.begin() as connection:
         ingredients = ledger.get_current_ingredients(connection)
         potion_quantities = ledger.get_current_potion_quantities(connection)
+        potion_sales = ledger.get_potion_sales_quantities(connection)
 
         potion_rows = connection.execute(
             sqlalchemy.text(
@@ -369,6 +377,28 @@ def get_bottle_plan() -> List[PotionMixes]:
             )
         ).all()
 
+    target_inventory = strategy.allocate_inventory_targets(
+        (int(row.id) for row in potion_rows),
+        potion_sales,
+        capacity=50,
+    )
+    prioritized_rows = sorted(
+        potion_rows,
+        key=lambda row: (
+            -(target_inventory[int(row.id)] - potion_quantities.get(int(row.id), 0)),
+            sum(
+                amount > 0
+                for amount in (
+                    row.red_ml,
+                    row.green_ml,
+                    row.blue_ml,
+                    row.dark_ml,
+                )
+            ),
+            int(row.id),
+        ),
+    )
+
     potion_inventory = [
         PotionInventory(
             potion_type=[
@@ -378,8 +408,9 @@ def get_bottle_plan() -> List[PotionMixes]:
                 row.dark_ml,
             ],
             quantity=potion_quantities.get(int(row.id), 0),
+            target_quantity=target_inventory[int(row.id)],
         )
-        for row in potion_rows
+        for row in prioritized_rows
     ]
 
     return create_bottle_plan(

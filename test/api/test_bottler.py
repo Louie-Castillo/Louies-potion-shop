@@ -151,6 +151,25 @@ def test_bottle_mixed_potions() -> None:
     assert result[0].quantity == 2
 
 
+def test_bottle_plan_stops_at_demand_target() -> None:
+    result = create_bottle_plan(
+        red_ml=5000,
+        green_ml=0,
+        blue_ml=0,
+        dark_ml=0,
+        maximum_potion_capacity=50,
+        current_potion_inventory=[
+            PotionInventory(
+                potion_type=[100, 0, 0, 0],
+                quantity=0,
+                target_quantity=40,
+            )
+        ],
+    )
+
+    assert result == [PotionMixes(potion_type=[100, 0, 0, 0], quantity=40)]
+
+
 def test_bottle_delivery_writes_ledgers_only_once(
     monkeypatch: pytest.MonkeyPatch,
     v3_engine: Engine,
