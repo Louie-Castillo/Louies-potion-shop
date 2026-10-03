@@ -79,6 +79,18 @@ def create_barrel_delivery_test_engine(
                 """
             )
         )
+        connection.execute(
+            sqlalchemy.text(
+                """
+                CREATE TABLE capacity_ledger_entries (
+                    id INTEGER PRIMARY KEY,
+                    transaction_id INTEGER NOT NULL UNIQUE,
+                    potion_capacity_change INTEGER NOT NULL DEFAULT 0,
+                    ml_capacity_change INTEGER NOT NULL DEFAULT 0
+                )
+                """
+            )
+        )
 
         connection.execute(
             sqlalchemy.text(
@@ -351,6 +363,42 @@ def test_barrel_delivery_rejects_insufficient_capacity(
     assert delivery_transaction_count == 0
 
 
+def test_barrel_delivery_uses_purchased_capacity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    test_engine = create_barrel_delivery_test_engine(
+        gold=500,
+        ingredient_balances=(9500, 0, 0, 0),
+    )
+    with test_engine.begin() as connection:
+        transaction_id = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT id
+                FROM inventory_transactions
+                WHERE transaction_type = 'opening_balance'
+                """
+            )
+        ).scalar_one()
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO capacity_ledger_entries (
+                    transaction_id,
+                    potion_capacity_change,
+                    ml_capacity_change
+                )
+                VALUES (:transaction_id, 0, 1)
+                """
+            ),
+            {"transaction_id": transaction_id},
+        )
+
+    monkeypatch.setattr(barrels_api.db, "engine", test_engine)
+
+    assert barrels_api.post_deliver_barrels([red_barrel()], order_id=100) is None
+
+
 def test_buy_barrel_for_mixed_potion_plan() -> None:
     wholesale_catalog: List[Barrel] = [
         Barrel(
@@ -475,6 +523,28 @@ def test_startup_plan_preserves_gold_when_no_barrel_unlocks_a_potion() -> None:
     )
 
     assert plan == []
+
+
+def test_barrel_plan_buys_batch_needed_for_target_inventory() -> None:
+    plan = create_barrel_plan(
+        gold=500,
+        max_barrel_capacity=10000,
+        current_ml=[0, 0, 0, 0],
+        target_potion_type=[100, 0, 0, 0],
+        target_potion_quantity=40,
+        target_potion_price=50,
+        wholesale_catalog=[
+            Barrel(
+                sku="BULK_RED_BARREL",
+                ml_per_barrel=1000,
+                potion_type=[1, 0, 0, 0],
+                price=100,
+                quantity=10,
+            )
+        ],
+    )
+
+    assert plan == [BarrelOrder(sku="BULK_RED_BARREL", quantity=4)]
 
 
 def test_wholesale_plan_starts_with_brewable_pure_potion(
@@ -727,4 +797,4 @@ def test_barrel_plan_reads_ledger_balances(
         ]
     )
 
-    assert plan == [BarrelOrder(sku="SMALL_RED_BARREL", quantity=1)]
+    assert plan == [BarrelOrder(sku="SMALL_RED_BARREL", quantity=5)]

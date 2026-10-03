@@ -33,6 +33,7 @@ def reset() -> None:
         gold = ledger.get_current_gold(connection)
         ingredients = ledger.get_current_ingredients(connection)
         potion_quantities = ledger.get_current_potion_quantities(connection)
+        capacity = ledger.get_capacity_balances(connection)
 
         gold_change = 100 - gold
         ingredient_changes = {
@@ -46,11 +47,15 @@ def reset() -> None:
             for potion_id, quantity in potion_quantities.items()
             if quantity != 0
         }
+        potion_capacity_change = 1 - capacity.potion_units
+        ml_capacity_change = 1 - capacity.ml_units
 
         has_balance_changes = (
             gold_change != 0
             or any(change != 0 for change in ingredient_changes.values())
             or bool(potion_changes)
+            or potion_capacity_change != 0
+            or ml_capacity_change != 0
         )
 
         if has_balance_changes:
@@ -145,6 +150,29 @@ def reset() -> None:
                         }
                         for potion_id, change in potion_changes.items()
                     ],
+                )
+
+            if potion_capacity_change != 0 or ml_capacity_change != 0:
+                connection.execute(
+                    sqlalchemy.text(
+                        """
+                        INSERT INTO capacity_ledger_entries (
+                            transaction_id,
+                            potion_capacity_change,
+                            ml_capacity_change
+                        )
+                        VALUES (
+                            :transaction_id,
+                            :potion_capacity_change,
+                            :ml_capacity_change
+                        )
+                        """
+                    ),
+                    {
+                        "transaction_id": transaction_id,
+                        "potion_capacity_change": potion_capacity_change,
+                        "ml_capacity_change": ml_capacity_change,
+                    },
                 )
 
         connection.execute(

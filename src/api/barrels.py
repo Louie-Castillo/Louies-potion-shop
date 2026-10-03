@@ -124,12 +124,13 @@ def post_deliver_barrels(
 
             gold = ledger.get_current_gold(connection)
             ingredients = ledger.get_current_ingredients(connection)
+            capacity = ledger.get_capacity_balances(connection)
             delivered_ml = sum(ingredients_delivered)
 
             if delivery.gold_paid > gold:
                 error_status = status.HTTP_409_CONFLICT
                 error_detail = "Not enough gold for this barrel delivery"
-            elif ingredients.total_ml + delivered_ml > 10000:
+            elif ingredients.total_ml + delivered_ml > capacity.maximum_ml:
                 error_status = status.HTTP_409_CONFLICT
                 error_detail = "Not enough capacity for this barrel delivery"
             else:
@@ -235,6 +236,8 @@ def create_barrel_plan(
     current_ml: List[int],
     target_potion_type: List[int],
     wholesale_catalog: List[Barrel],
+    target_potion_quantity: int | None = None,
+    target_potion_price: int = 0,
 ) -> List[BarrelOrder]:
     remaining_capacity = max(
         0,
@@ -284,49 +287,78 @@ def create_barrel_plan(
         return min(limits, default=0)
 
     current_bottles = bottles_possible(current_ml)
-    scored_candidates: list[tuple[Barrel, int, float, int]] = []
+    desired_bottle_gain = max(1, target_potion_quantity or 1)
+    scored_candidates: list[tuple[Barrel, int, int, int, float, int]] = []
 
     for barrel in candidates:
-        delivered_ml = [
-            round(barrel.ml_per_barrel * proportion)
-            for proportion in barrel.potion_type
-        ]
-        future_ml = [
-            current_amount + delivered_amount
-            for current_amount, delivered_amount in zip(current_ml, delivered_ml)
-        ]
-        bottle_gain = bottles_possible(future_ml) - current_bottles
-        remaining_gold = gold - barrel.price
-
-        # Never spend the final gold on ingredients that still cannot produce
-        # another target potion. That creates an unrecoverable empty catalog.
-        if remaining_gold == 0 and bottle_gain <= 0:
-            continue
-
-        useful_ml = sum(delivered_ml[index] for index in required_ingredients)
-        useful_ml_per_gold = (
-            float("inf") if barrel.price == 0 else useful_ml / barrel.price
+        affordable_quantity = (
+            barrel.quantity if barrel.price == 0 else gold // barrel.price
         )
-        scored_candidates.append((barrel, bottle_gain, useful_ml_per_gold, useful_ml))
+        capacity_quantity = remaining_capacity // barrel.ml_per_barrel
+        maximum_quantity = min(
+            barrel.quantity,
+            affordable_quantity,
+            capacity_quantity,
+        )
+
+        for quantity in range(1, maximum_quantity + 1):
+            delivered_ml = [
+                round(barrel.ml_per_barrel * proportion) * quantity
+                for proportion in barrel.potion_type
+            ]
+            future_ml = [
+                current_amount + delivered_amount
+                for current_amount, delivered_amount in zip(
+                    current_ml,
+                    delivered_ml,
+                )
+            ]
+            bottle_gain = bottles_possible(future_ml) - current_bottles
+            purchase_cost = barrel.price * quantity
+            remaining_gold = gold - purchase_cost
+
+            # Never spend the final gold on ingredients that still cannot
+            # produce another target potion.
+            if remaining_gold == 0 and bottle_gain <= 0:
+                continue
+
+            useful_ml = sum(delivered_ml[index] for index in required_ingredients)
+            useful_ml_per_gold = useful_ml / max(1, purchase_cost)
+            capped_gain = min(bottle_gain, desired_bottle_gain)
+            projected_margin = capped_gain * target_potion_price - purchase_cost
+            scored_candidates.append(
+                (
+                    barrel,
+                    quantity,
+                    capped_gain,
+                    projected_margin,
+                    useful_ml_per_gold,
+                    useful_ml,
+                )
+            )
 
     if not scored_candidates:
         return []
 
-    selected_barrel = min(
+    selected_candidate = min(
         scored_candidates,
         key=lambda candidate: (
-            -candidate[1],
             -candidate[2],
             -candidate[3],
-            candidate[0].price,
+            -candidate[4],
+            -candidate[5],
+            candidate[0].price * candidate[1],
             candidate[0].sku,
+            candidate[1],
         ),
-    )[0]
+    )
+    selected_barrel = selected_candidate[0]
+    selected_quantity = selected_candidate[1]
 
     return [
         BarrelOrder(
             sku=selected_barrel.sku,
-            quantity=1,
+            quantity=selected_quantity,
         )
     ]
 
@@ -346,12 +378,15 @@ def get_wholesale_purchase_plan(
         ingredients = ledger.get_current_ingredients(connection)
         potion_quantities = ledger.get_current_potion_quantities(connection)
         potion_sales = ledger.get_potion_sales_quantities(connection)
+        ingredient_costs = ledger.get_ingredient_cost_per_ml(connection)
+        capacity = ledger.get_capacity_balances(connection)
 
         potion_rows = connection.execute(
             sqlalchemy.text(
                 """
                 SELECT
                     id,
+                    price,
                     red_ml,
                     green_ml,
                     blue_ml,
@@ -427,7 +462,17 @@ def get_wholesale_purchase_plan(
     target_inventory = strategy.allocate_inventory_targets(
         (int(row.id) for row in potion_rows),
         potion_sales,
-        capacity=50,
+        capacity=capacity.maximum_potions,
+        profit_weights=strategy.estimate_potion_margins(
+            {
+                int(row.id): (
+                    int(row.price),
+                    [row.red_ml, row.green_ml, row.blue_ml, row.dark_ml],
+                )
+                for row in potion_rows
+            },
+            ingredient_costs,
+        ),
     )
     target_candidates = [
         row
@@ -459,7 +504,7 @@ def get_wholesale_purchase_plan(
 
     return create_barrel_plan(
         gold=gold,
-        max_barrel_capacity=10000,
+        max_barrel_capacity=capacity.maximum_ml,
         current_ml=[
             ingredients.red_ml,
             ingredients.green_ml,
@@ -473,4 +518,9 @@ def get_wholesale_purchase_plan(
             target_potion.dark_ml,
         ],
         wholesale_catalog=wholesale_catalog,
+        target_potion_quantity=(
+            target_inventory[int(target_potion.id)]
+            - potion_quantities.get(int(target_potion.id), 0)
+        ),
+        target_potion_price=int(target_potion.price),
     )

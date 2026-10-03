@@ -152,6 +152,7 @@ def post_deliver_bottles(
 
         if error_status is None:
             ingredients = ledger.get_current_ingredients(connection)
+            capacity = ledger.get_capacity_balances(connection)
             available_ml = [
                 ingredients.red_ml,
                 ingredients.green_ml,
@@ -171,7 +172,7 @@ def post_deliver_bottles(
             elif (
                 ledger.get_total_potions(connection)
                 + sum(potion_quantities_to_add.values())
-                > 50
+                > capacity.maximum_potions
             ):
                 error_status = status.HTTP_409_CONFLICT
                 error_detail = "Not enough potion capacity for this delivery"
@@ -354,12 +355,15 @@ def get_bottle_plan() -> List[PotionMixes]:
         ingredients = ledger.get_current_ingredients(connection)
         potion_quantities = ledger.get_current_potion_quantities(connection)
         potion_sales = ledger.get_potion_sales_quantities(connection)
+        ingredient_costs = ledger.get_ingredient_cost_per_ml(connection)
+        capacity = ledger.get_capacity_balances(connection)
 
         potion_rows = connection.execute(
             sqlalchemy.text(
                 """
                 SELECT
                     id,
+                    price,
                     red_ml,
                     green_ml,
                     blue_ml,
@@ -380,7 +384,17 @@ def get_bottle_plan() -> List[PotionMixes]:
     target_inventory = strategy.allocate_inventory_targets(
         (int(row.id) for row in potion_rows),
         potion_sales,
-        capacity=50,
+        capacity=capacity.maximum_potions,
+        profit_weights=strategy.estimate_potion_margins(
+            {
+                int(row.id): (
+                    int(row.price),
+                    [row.red_ml, row.green_ml, row.blue_ml, row.dark_ml],
+                )
+                for row in potion_rows
+            },
+            ingredient_costs,
+        ),
     )
     prioritized_rows = sorted(
         potion_rows,
@@ -418,6 +432,6 @@ def get_bottle_plan() -> List[PotionMixes]:
         green_ml=ingredients.green_ml,
         blue_ml=ingredients.blue_ml,
         dark_ml=ingredients.dark_ml,
-        maximum_potion_capacity=50,
+        maximum_potion_capacity=capacity.maximum_potions,
         current_potion_inventory=potion_inventory,
     )

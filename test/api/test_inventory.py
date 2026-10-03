@@ -1,7 +1,9 @@
 import pytest
 import sqlalchemy
+from fastapi import HTTPException, status
 from sqlalchemy.engine import Engine
 
+from src import ledger
 from src.api import admin, inventory
 
 
@@ -114,6 +116,19 @@ def seed_inventory_for_reset(engine: Engine) -> None:
                 VALUES
                     (:transaction_id, 1, 4),
                     (:transaction_id, 2, 3)
+                """
+            ),
+            {"transaction_id": opening_transaction_id},
+        )
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO capacity_ledger_entries (
+                    transaction_id,
+                    potion_capacity_change,
+                    ml_capacity_change
+                )
+                VALUES (:transaction_id, 1, 1)
                 """
             ),
             {"transaction_id": opening_transaction_id},
@@ -274,6 +289,7 @@ def test_audit_and_reset_use_ledgers_idempotently(
                 """
             )
         ).scalar_one()
+        capacity = ledger.get_capacity_balances(connection)
 
     assert reset_transaction_count == 1
     assert len(remaining_carts) == 1
@@ -288,3 +304,99 @@ def test_audit_and_reset_use_ledgers_idempotently(
     assert stale_potion_total == 1998
     assert historical_checkout_count == 1
     assert processed_request_count == 0
+    assert capacity.potion_units == 1
+    assert capacity.ml_units == 1
+
+
+def test_capacity_plan_purchases_and_delivers_upgrade_idempotently(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+) -> None:
+    with v3_engine.begin() as connection:
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO potions (
+                    id, sku, name, quantity, price,
+                    red_ml, green_ml, blue_ml, dark_ml
+                )
+                VALUES (1, 'RED_POTION_0', 'red potion', 0, 50, 100, 0, 0, 0)
+                """
+            )
+        )
+        transaction_id = connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO inventory_transactions (
+                    transaction_type,
+                    description
+                )
+                VALUES ('opening_balance', 'Capacity test balance')
+                RETURNING id
+                """
+            )
+        ).scalar_one()
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO gold_ledger_entries (transaction_id, change)
+                VALUES (:transaction_id, 1500)
+                """
+            ),
+            {"transaction_id": transaction_id},
+        )
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO potion_ledger_entries (
+                    transaction_id,
+                    potion_id,
+                    change
+                )
+                VALUES (:transaction_id, 1, 45)
+                """
+            ),
+            {"transaction_id": transaction_id},
+        )
+
+    monkeypatch.setattr(inventory.db, "engine", v3_engine)
+
+    plan = inventory.get_capacity_plan()
+
+    assert plan == inventory.CapacityPlan(potion_capacity=1, ml_capacity=0)
+    assert inventory.deliver_capacity_plan(plan, order_id=501) is None
+    assert inventory.deliver_capacity_plan(plan, order_id=501) is None
+
+    with v3_engine.begin() as connection:
+        capacity = ledger.get_capacity_balances(connection)
+        gold = ledger.get_current_gold(connection)
+        delivery_count = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT COUNT(*)
+                FROM inventory_transactions
+                WHERE transaction_type = 'capacity_delivery'
+                """
+            )
+        ).scalar_one()
+
+    assert capacity.potion_units == 2
+    assert capacity.maximum_potions == 100
+    assert gold == 500
+    assert delivery_count == 1
+
+
+def test_capacity_delivery_rejects_purchase_without_enough_gold(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+) -> None:
+    monkeypatch.setattr(inventory.db, "engine", v3_engine)
+
+    with pytest.raises(HTTPException) as error:
+        inventory.deliver_capacity_plan(
+            inventory.CapacityPlan(potion_capacity=1, ml_capacity=0),
+            order_id=502,
+        )
+
+    assert error.value.status_code == status.HTTP_409_CONFLICT
+    assert error.value.detail == "Not enough gold for this capacity purchase"

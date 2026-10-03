@@ -330,6 +330,53 @@ def test_bottle_delivery_enforces_potion_capacity(
     assert error.value.detail == "Not enough potion capacity for this delivery"
 
 
+def test_bottle_delivery_uses_purchased_capacity(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+) -> None:
+    seed_bottler_inventory(
+        v3_engine,
+        red_ml=50,
+        green_ml=50,
+        potion_quantity=50,
+    )
+    with v3_engine.begin() as connection:
+        transaction_id = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT id
+                FROM inventory_transactions
+                WHERE transaction_type = 'opening_balance'
+                ORDER BY id
+                LIMIT 1
+                """
+            )
+        ).scalar_one()
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO capacity_ledger_entries (
+                    transaction_id,
+                    potion_capacity_change,
+                    ml_capacity_change
+                )
+                VALUES (:transaction_id, 1, 0)
+                """
+            ),
+            {"transaction_id": transaction_id},
+        )
+
+    monkeypatch.setattr(bottler.db, "engine", v3_engine)
+
+    assert (
+        bottler.post_deliver_bottles(
+            [PotionMixes(potion_type=[50, 50, 0, 0], quantity=1)],
+            order_id=105,
+        )
+        is None
+    )
+
+
 def test_bottle_plan_reads_ledger_balances(
     monkeypatch: pytest.MonkeyPatch,
     v3_engine: Engine,

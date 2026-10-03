@@ -108,6 +108,14 @@ def v3_engine() -> Iterator[Engine]:
         )
         """,
         """
+        CREATE TABLE capacity_ledger_entries (
+            id INTEGER PRIMARY KEY,
+            transaction_id INTEGER NOT NULL UNIQUE,
+            potion_capacity_change INTEGER NOT NULL DEFAULT 0,
+            ml_capacity_change INTEGER NOT NULL DEFAULT 0
+        )
+        """,
+        """
         CREATE TABLE barrel_offers (
             id INTEGER PRIMARY KEY,
             game_day TEXT NOT NULL,
