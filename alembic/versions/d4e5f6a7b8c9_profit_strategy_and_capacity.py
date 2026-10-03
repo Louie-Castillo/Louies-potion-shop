@@ -75,16 +75,17 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     connection = op.get_bind()
-    potion_ids = connection.execute(
-        sa.text(
-            """
-            SELECT id
-            FROM potions
-            WHERE sku IN ('PURPLE_POTION_0', 'CYAN_POTION_0')
-            """
-        )
-    ).scalars()
-    potion_ids = list(potion_ids)
+    potion_ids = list(
+        connection.execute(
+            sa.text(
+                """
+                SELECT id
+                FROM potions
+                WHERE sku IN ('PURPLE_POTION_0', 'CYAN_POTION_0')
+                """
+            )
+        ).scalars()
+    )
 
     if potion_ids:
         connection.execute(
