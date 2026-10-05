@@ -92,3 +92,34 @@ If those measurements continue to show red near 77% of demand, the shop should
 retain the red-heavy plan. If mixed potions begin producing higher margins or
 serving additional classes, brewing capacity should shift toward those recipes
 even when their raw unit volume remains lower.
+
+## 6. Build a low-cost dark-potion market before nighttime
+
+After the competition reset, the initial red strategy completed 14 out of 14
+checkouts and sold 59 red potions, but every successful customer was a Warrior.
+That confirms strong reliability while also showing that recognition is
+concentrated in only one class. The next strategy will preserve the reliable
+red baseline while using a low-cost pure dark potion to reach nighttime classes
+that the existing catalog does not serve.
+
+Recorded wholesale history contains dark-bearing barrels, including a pure
+10,000 ml dark barrel for 750 gold. That produces dark ingredient at 0.075 gold
+per ml, or approximately 7.5 gold of ingredient cost for a 100 ml potion. The
+dark potion will initially sell for 45 gold, leaving a strong estimated margin
+while deliberately prioritizing customer value and recognition over the
+highest possible unit price.
+
+The production algorithm will maintain at least three bottles of every active
+recipe for class coverage. Dark potion receives a larger minimum target:
+
+- 20% of finished-potion capacity during ordinary daytime hours;
+- 40% from game hour 16 through the night and through hour 4;
+- the remaining capacity is allocated using recorded demand and estimated
+  ingredient margin.
+
+This is a controlled market-building strategy rather than an all-in bet. If a
+wholesale tick has no barrel capable of producing dark potion, the planner will
+fall back to the next most-needed active potion instead of skipping the entire
+purchase opportunity. Dark sales, class recognition, and checkout reliability
+should be reviewed after a complete game week before changing the price or
+increasing the nighttime allocation further.

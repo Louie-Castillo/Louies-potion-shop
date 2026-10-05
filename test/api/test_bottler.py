@@ -151,6 +151,25 @@ def test_bottle_mixed_potions() -> None:
     assert result[0].quantity == 2
 
 
+def test_bottle_dark_market_inventory() -> None:
+    result = create_bottle_plan(
+        red_ml=0,
+        green_ml=0,
+        blue_ml=0,
+        dark_ml=2000,
+        maximum_potion_capacity=50,
+        current_potion_inventory=[
+            PotionInventory(
+                potion_type=[0, 0, 0, 100],
+                quantity=0,
+                target_quantity=20,
+            )
+        ],
+    )
+
+    assert result == [PotionMixes(potion_type=[0, 0, 0, 100], quantity=20)]
+
+
 def test_bottle_plan_stops_at_demand_target() -> None:
     result = create_bottle_plan(
         red_ml=5000,

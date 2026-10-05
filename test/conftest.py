@@ -25,7 +25,8 @@ def v3_engine() -> Iterator[Engine]:
             red_ml INTEGER NOT NULL,
             green_ml INTEGER NOT NULL,
             blue_ml INTEGER NOT NULL,
-            dark_ml INTEGER NOT NULL
+            dark_ml INTEGER NOT NULL,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE
         )
         """,
         """

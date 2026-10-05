@@ -22,7 +22,8 @@ def test_catalog_returns_in_stock_database_potions(
                     red_ml INTEGER NOT NULL,
                     green_ml INTEGER NOT NULL,
                     blue_ml INTEGER NOT NULL,
-                    dark_ml INTEGER NOT NULL
+                    dark_ml INTEGER NOT NULL,
+                    is_active BOOLEAN NOT NULL DEFAULT TRUE
                 )
                 """
             )
@@ -96,6 +97,37 @@ def test_catalog_returns_in_stock_database_potions(
         connection.execute(
             sqlalchemy.text(
                 """
+                INSERT INTO potions (
+                    id,
+                    sku,
+                    name,
+                    quantity,
+                    price,
+                    red_ml,
+                    green_ml,
+                    blue_ml,
+                    dark_ml,
+                    is_active
+                )
+                VALUES (
+                    3,
+                    'INACTIVE_POTION_0',
+                    'inactive potion',
+                    0,
+                    500,
+                    0,
+                    0,
+                    0,
+                    100,
+                    FALSE
+                )
+                """
+            )
+        )
+
+        connection.execute(
+            sqlalchemy.text(
+                """
                 INSERT INTO potion_ledger_entries (
                     id,
                     potion_id,
@@ -103,7 +135,8 @@ def test_catalog_returns_in_stock_database_potions(
                 )
                 VALUES
                     (1, 2, 5),
-                    (2, 2, -2)
+                    (2, 2, -2),
+                    (3, 3, 5)
                 """
             )
         )

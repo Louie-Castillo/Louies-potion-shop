@@ -181,6 +181,70 @@ def red_barrel(price: int = 100) -> Barrel:
     )
 
 
+def dark_barrel(price: int = 750) -> Barrel:
+    return Barrel(
+        sku="LARGE_DARK_BARREL",
+        ml_per_barrel=10000,
+        potion_type=[0, 0, 0, 1.0],
+        price=price,
+        quantity=1,
+    )
+
+
+def seed_dark_market_catalog(engine: Engine) -> None:
+    with engine.begin() as connection:
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO potions (
+                    id,
+                    sku,
+                    name,
+                    quantity,
+                    price,
+                    red_ml,
+                    green_ml,
+                    blue_ml,
+                    dark_ml
+                )
+                VALUES
+                    (1, 'RED_POTION_0', 'red potion', 0, 50, 100, 0, 0, 0),
+                    (2, 'DARK_POTION_0', 'dark potion', 0, 45, 0, 0, 0, 100)
+                """
+            )
+        )
+        transaction_id = connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO inventory_transactions (
+                    transaction_type,
+                    description
+                )
+                VALUES ('opening_balance', 'Dark market test balance')
+                RETURNING id
+                """
+            )
+        ).scalar_one()
+        connection.execute(
+            sqlalchemy.text(
+                """
+                INSERT INTO gold_ledger_entries (transaction_id, change)
+                VALUES (:transaction_id, 1000)
+                """
+            ),
+            {"transaction_id": transaction_id},
+        )
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE game_time
+                SET day = 'Crownday', hour = 20
+                WHERE id = 1
+                """
+            )
+        )
+
+
 def test_calculate_barrel_delivery_summary() -> None:
     delivery: List[Barrel] = [
         Barrel(
@@ -259,6 +323,32 @@ def test_barrel_delivery_writes_ledger_entries_only_once(
     assert delivery_transaction_count == 1
     assert processed_request.response_status == 204
     assert processed_request.transaction_id is not None
+
+
+def test_dark_barrel_delivery_writes_dark_ingredient_ledger(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    test_engine = create_barrel_delivery_test_engine(gold=1000)
+    monkeypatch.setattr(barrels_api.db, "engine", test_engine)
+
+    assert barrels_api.post_deliver_barrels([dark_barrel()], order_id=78) is None
+
+    with test_engine.begin() as connection:
+        gold_balance = connection.execute(
+            sqlalchemy.text("SELECT COALESCE(SUM(change), 0) FROM gold_ledger_entries")
+        ).scalar_one()
+        dark_balance = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT COALESCE(SUM(change), 0)
+                FROM ingredient_ledger_entries
+                WHERE ingredient_type = 'dark'
+                """
+            )
+        ).scalar_one()
+
+    assert gold_balance == 250
+    assert dark_balance == 10000
 
 
 def test_barrel_delivery_retry_returns_stored_insufficient_gold_error(
@@ -436,6 +526,44 @@ def test_buy_barrel_for_mixed_potion_plan() -> None:
     assert barrel_orders[0].quantity == 1
 
     assert barrel_orders[0].sku == "SMALL_RED_BARREL"
+
+
+def test_buy_dark_barrel_for_dark_market_plan() -> None:
+    plan = create_barrel_plan(
+        gold=1000,
+        max_barrel_capacity=10000,
+        current_ml=[0, 0, 0, 0],
+        target_potion_type=[0, 0, 0, 100],
+        target_potion_quantity=20,
+        target_potion_price=45,
+        wholesale_catalog=[dark_barrel()],
+    )
+
+    assert plan == [BarrelOrder(sku="LARGE_DARK_BARREL", quantity=1)]
+
+
+def test_night_wholesale_plan_prioritizes_dark_market_inventory(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+) -> None:
+    seed_dark_market_catalog(v3_engine)
+    monkeypatch.setattr(barrels_api.db, "engine", v3_engine)
+
+    plan = barrels_api.get_wholesale_purchase_plan([red_barrel(), dark_barrel()])
+
+    assert plan == [BarrelOrder(sku="LARGE_DARK_BARREL", quantity=1)]
+
+
+def test_wholesale_plan_falls_back_when_dark_barrel_is_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+    v3_engine: Engine,
+) -> None:
+    seed_dark_market_catalog(v3_engine)
+    monkeypatch.setattr(barrels_api.db, "engine", v3_engine)
+
+    plan = barrels_api.get_wholesale_purchase_plan([red_barrel()])
+
+    assert plan == [BarrelOrder(sku="SMALL_RED_BARREL", quantity=1)]
 
 
 def test_cant_afford_barrel_plan() -> None:

@@ -38,6 +38,7 @@ def create_catalog() -> List[CatalogItem]:
                     blue_ml,
                     dark_ml
                 FROM potions
+                WHERE is_active = TRUE
                 ORDER BY id
                 """
             )

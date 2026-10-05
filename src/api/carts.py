@@ -272,6 +272,7 @@ def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
                 SELECT id
                 FROM potions
                 WHERE sku = :item_sku
+                    AND is_active = TRUE
                 """
             ),
             {"item_sku": item_sku},

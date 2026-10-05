@@ -130,6 +130,7 @@ def post_deliver_bottles(
                         AND green_ml = :green_ml
                         AND blue_ml = :blue_ml
                         AND dark_ml = :dark_ml
+                        AND is_active = TRUE
                     """
                 ),
                 {
@@ -369,6 +370,7 @@ def get_bottle_plan() -> List[PotionMixes]:
                     blue_ml,
                     dark_ml
                 FROM potions
+                WHERE is_active = TRUE
                 ORDER BY
                     (
                         CASE WHEN red_ml > 0 THEN 1 ELSE 0 END +
@@ -381,6 +383,25 @@ def get_bottle_plan() -> List[PotionMixes]:
             )
         ).all()
 
+        game_hour = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT hour
+                FROM game_time
+                WHERE id = 1
+                """
+            )
+        ).scalar_one()
+
+    potion_recipes = {
+        int(row.id): [
+            row.red_ml,
+            row.green_ml,
+            row.blue_ml,
+            row.dark_ml,
+        ]
+        for row in potion_rows
+    }
     target_inventory = strategy.allocate_inventory_targets(
         (int(row.id) for row in potion_rows),
         potion_sales,
@@ -394,6 +415,11 @@ def get_bottle_plan() -> List[PotionMixes]:
                 for row in potion_rows
             },
             ingredient_costs,
+        ),
+        minimum_targets=strategy.build_market_minimum_targets(
+            potion_recipes,
+            capacity.maximum_potions,
+            game_hour,
         ),
     )
     prioritized_rows = sorted(
